@@ -27,6 +27,7 @@ def error_json_response(
     message: str,
     details: dict[str, Any] | None = None,
 ) -> JSONResponse:
+    request.state.error_code = code.value
     response = ErrorResponse(
         error=ErrorInfo(code=code.value, message=message, details=details),
         meta=ResponseMeta(request_id=request_id_from(request)),
