@@ -1,13 +1,11 @@
 from datetime import datetime
-from typing import Any, Generic, TypeVar
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_serializer
 
 from app.contracts.pagination import PaginationMeta
 from app.core.time import to_utc_z, utc_now
-
-T = TypeVar("T")
 
 
 class ResponseMeta(BaseModel):
@@ -20,8 +18,8 @@ class ResponseMeta(BaseModel):
         return to_utc_z(value)
 
 
-class SuccessResponse(BaseModel, Generic[T]):
-    success: bool = True
+class SuccessResponse[T](BaseModel):
+    success: Literal[True] = True
     data: T
     meta: ResponseMeta
 
@@ -33,15 +31,18 @@ class ErrorInfo(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    success: bool = False
+    success: Literal[False] = False
     error: ErrorInfo
     meta: ResponseMeta
 
 
-def success_response(
+def success_response[T](
     data: T,
     *,
     request_id: UUID,
     pagination: PaginationMeta | None = None,
 ) -> SuccessResponse[T]:
-    return SuccessResponse(data=data, meta=ResponseMeta(request_id=request_id, pagination=pagination))
+    return SuccessResponse(
+        data=data,
+        meta=ResponseMeta(request_id=request_id, pagination=pagination),
+    )

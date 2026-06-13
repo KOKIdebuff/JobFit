@@ -11,11 +11,11 @@ def create_database_engine(settings: Settings) -> Engine:
     connect_args: dict[str, object] = {}
     if settings.database_url.startswith("sqlite"):
         connect_args["check_same_thread"] = False
+        connect_args["timeout"] = settings.sqlite_busy_timeout_ms / 1_000
 
     engine = create_engine(settings.database_url, connect_args=connect_args)
 
     if settings.database_url.startswith("sqlite"):
-        busy_timeout_ms = settings.sqlite_busy_timeout_ms
 
         @event.listens_for(engine, "connect")
         def configure_sqlite(dbapi_connection: object, connection_record: object) -> None:
@@ -23,7 +23,6 @@ def create_database_engine(settings: Settings) -> Engine:
             cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
             try:
                 cursor.execute("PRAGMA foreign_keys=ON")
-                cursor.execute(f"PRAGMA busy_timeout={busy_timeout_ms:d}")
             finally:
                 cursor.close()
 

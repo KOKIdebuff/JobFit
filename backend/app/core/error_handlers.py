@@ -35,7 +35,9 @@ def error_json_response(
     return JSONResponse(status_code=status_code, content=response.model_dump(mode="json"))
 
 
-async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
+async def app_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    if not isinstance(exc, AppException):
+        raise TypeError("unexpected exception type")
     return error_json_response(
         request=request,
         code=exc.code,
@@ -57,8 +59,10 @@ def _validation_reason(error: dict[str, Any]) -> str:
 
 async def validation_exception_handler(
     request: Request,
-    exc: RequestValidationError,
+    exc: Exception,
 ) -> JSONResponse:
+    if not isinstance(exc, RequestValidationError):
+        raise TypeError("unexpected exception type")
     fields = []
     for error in exc.errors():
         location = [str(part) for part in error["loc"] if part not in {"body", "query", "path"}]
@@ -76,8 +80,10 @@ async def validation_exception_handler(
 
 async def http_exception_handler(
     request: Request,
-    exc: StarletteHTTPException,
+    exc: Exception,
 ) -> JSONResponse:
+    if not isinstance(exc, StarletteHTTPException):
+        raise TypeError("unexpected exception type")
     status_to_code = {
         401: ErrorCode.AUTH_UNAUTHORIZED,
         403: ErrorCode.AUTH_FORBIDDEN,

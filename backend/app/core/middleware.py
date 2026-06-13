@@ -7,8 +7,6 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 
 from app.core.logging import get_logger
 
-logger = get_logger("http")
-
 
 def valid_request_id(value: str | None) -> UUID | None:
     if value is None:
@@ -38,7 +36,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         try:
             response = await call_next(request)
             duration_ms = round((perf_counter() - started_at) * 1_000, 3)
-            logger.info(
+            get_logger("http").info(
                 "request.completed",
                 duration_ms=duration_ms,
                 error_code=request.state.error_code,

@@ -1,5 +1,5 @@
 import logging
-import sys
+from collections.abc import MutableMapping
 from typing import Any
 from uuid import uuid4
 
@@ -12,8 +12,8 @@ from app.core.time import to_utc_z, utc_now
 def _add_contract_fields(
     logger: Any,
     method_name: str,
-    event_dict: dict[str, Any],
-) -> dict[str, Any]:
+    event_dict: MutableMapping[str, Any],
+) -> MutableMapping[str, Any]:
     del logger, method_name
     event_dict.setdefault("timestamp", to_utc_z(utc_now()))
     event_dict.setdefault("module", "core")
@@ -34,12 +34,12 @@ def configure_logging(settings: Settings) -> None:
             structlog.processors.JSONRenderer(sort_keys=True),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(level),
-        logger_factory=structlog.PrintLoggerFactory(file=sys.stdout),
+        logger_factory=structlog.PrintLoggerFactory(),
         cache_logger_on_first_use=False,
     )
 
 
-def get_logger(module: str) -> structlog.typing.FilteringBoundLogger:
+def get_logger(module: str) -> Any:
     return structlog.get_logger().bind(module=module)
 
 
