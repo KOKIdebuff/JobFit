@@ -1,0 +1,1 @@
+"""Candidate profiles module package."""
