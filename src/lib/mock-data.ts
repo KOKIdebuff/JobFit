@@ -189,10 +189,13 @@ export const ADVANTAGE_SCORES: ScoreDim[] = [
 ];
 
 export const TECH_STACK = [
-  { name: "LLM 大语言模型", desc: "理解意图、生成简历与面试问答" },
-  { name: "RAG 检索增强", desc: "结合岗位库与企业知识精准生成" },
-  { name: "向量匹配", desc: "简历与岗位语义相似度召回排序" },
-  { name: "数字人", desc: "虚拟面试官形象与表情驱动" },
-  { name: "WebRTC", desc: "低延迟实时音视频面试通道" },
-  { name: "评分模型", desc: "多维度量化面试表现与匹配度" },
+  { name: "规则评分 + AI 解释", desc: "后端规则负责分数，AI 只生成理由、缺口和证据说明" },
+  {
+    name: "固定 Agent 工作流",
+    desc: "后端 Orchestrator 按预设节点执行，不允许 Agent 自由改变业务流程",
+  },
+  { name: "浏览器实时转写", desc: "使用浏览器语音识别生成临时文字稿，答后由候选人确认" },
+  { name: "摄像头本地预览", desc: "媒体流仅在浏览器页面内预览，不录制、不上传、不参与评分" },
+  { name: "结构化 AI 报告", desc: "一个报告实体按权限提供 HR 版和求职者版两个视图" },
+  { name: "后续规划", desc: "RAG、向量数据库、WebRTC 和数字人不属于当前 P0 已实现能力" },
 ];

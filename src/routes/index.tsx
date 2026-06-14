@@ -22,12 +22,12 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "岗位精准匹配、定制简历生成、职业人脉地图与数字人虚拟面试，让求职从海投等待变成精准连接与智能筛选。",
+          "HireLink P0 产品原型：简历解析、规则评分、固定 Agent 工作流、轻量面试和结构化 AI 报告。",
       },
       { property: "og:title", content: "HireLink AI — AI 人才服务智能体平台" },
       {
         property: "og:description",
-        content: "岗位匹配 + 简历定制 + 人脉内推 + 数字人面试，AI 驱动的求职闭环。",
+        content: "规则评分 + AI 解释，固定 Agent 工作流，浏览器实时转写与结构化 AI 报告。",
       },
     ],
   }),
@@ -53,10 +53,10 @@ const PAINS = [
 ];
 
 const SOLUTIONS = [
-  { label: "岗位匹配", icon: Target },
-  { label: "简历定制", icon: FileText },
-  { label: "人脉内推", icon: Network },
-  { label: "数字人面试", icon: Video },
+  { label: "简历解析", icon: FileText },
+  { label: "规则匹配", icon: Target },
+  { label: "轻量面试", icon: Video },
+  { label: "证据链报告", icon: Network },
 ];
 
 const FEATURES = [
@@ -64,33 +64,40 @@ const FEATURES = [
     to: "/match",
     n: "01",
     icon: Target,
-    title: "AI 岗位精准匹配",
-    desc: "基于向量语义召回，输入求职意向即可获得带匹配度评分与匹配理由的岗位推荐。",
+    title: "可解释岗位匹配原型",
+    desc: "当前页面使用前端规则演示匹配结果；P0 后端采用规则评分 + AI 解释，不依赖向量数据库。",
   },
   {
     to: "/resume",
     n: "02",
     icon: FileText,
-    title: "AI 定制简历生成",
-    desc: "针对目标岗位智能改写，关键词对齐、结构优化，一键生成排版精美的定制简历。",
+    title: "简历解析与版本原型",
+    desc: "展示简历文本抽取、字段识别和版本管理交互；当前模板预览不代表已实现 RAG。",
   },
   {
     to: "/network",
     n: "03",
     icon: Network,
-    title: "AI 职业人脉地图",
-    desc: "可视化校友、同行与内推人关系，自动识别最短内推路径，让连接更有温度。",
+    title: "后续规划：职业人脉",
+    desc: "该页面是非 P0 概念原型，当前不作为真实招聘主流程能力。",
   },
   {
     to: "/interview",
     n: "04",
     icon: Video,
-    title: "AI 数字人虚拟面试",
-    desc: "数字人面试官实时提问，多维度评分模型生成结构化面试反馈报告。",
+    title: "轻量面试交互原型",
+    desc: "当前展示逐题文字作答和报告样式；数字人、WebRTC 属于后续规划，不标记为已实现。",
   },
 ];
 
-const FLOW_STEPS = ["投递意向", "岗位匹配", "简历定制", "人脉内推", "数字人面试", "反馈优化"];
+const FLOW_STEPS = [
+  "简历解析",
+  "岗位理解",
+  "规则匹配",
+  "面试与任务",
+  "结构化报告",
+  "HR 确认与反馈",
+];
 
 const BIZ = [
   {
@@ -106,7 +113,7 @@ const BIZ = [
   {
     title: "企业 SaaS",
     price: "B 端订阅",
-    points: ["精准候选人推荐", "AI 初筛与评分", "数字人面试降本"],
+    points: ["可解释候选人排序", "结构化证据报告", "HR 人工决策辅助"],
   },
 ];
 
@@ -119,7 +126,7 @@ function Index() {
         <div className="mx-auto max-w-5xl px-5 pb-20 pt-20 text-center sm:px-8 sm:pt-28">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-4 py-1.5 text-xs text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5" />
-            AI 人才服务智能体平台
+            AI 招聘能力验证产品原型
           </div>
           <h1 className="mx-auto max-w-4xl text-4xl font-semibold leading-[1.1] sm:text-6xl">
             让求职从<span className="text-gradient">「海投等待」</span>
@@ -127,8 +134,8 @@ function Index() {
             变成<span className="text-gradient">「精准连接 + 智能筛选」</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base text-muted-foreground sm:text-lg">
-            岗位精准匹配 · 定制简历生成 · 职业人脉地图 · 数字人虚拟面试，
-            一站式打通学生、企业与高校的求职闭环。
+            P0 围绕简历解析、岗位理解、规则匹配、轻量面试、岗位任务和结构化报告， 建立求职者与 HR
+            的能力验证闭环。
           </p>
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -181,7 +188,7 @@ function Index() {
       </Section>
 
       {/* Features */}
-      <Section title="四大核心功能" kicker="点击进入交互演示">
+      <Section title="当前原型页面" kicker="明确区分 P0 能力与后续规划">
         <div className="grid gap-5 md:grid-cols-2">
           {FEATURES.map((f) => (
             <Link
@@ -235,7 +242,7 @@ function Index() {
       </Section>
 
       {/* Tech */}
-      <Section title="技术实现" kicker="可落地的技术底座">
+      <Section title="P0 技术边界" kicker="只描述确定采用的实现方案">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {TECH_STACK.map((t) => (
             <div key={t.name} className="grad-border rounded-2xl bg-card p-6 shadow-soft">

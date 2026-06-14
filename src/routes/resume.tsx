@@ -10,13 +10,13 @@ import { FeatureHeader, Field, Chip } from "./match";
 export const Route = createFileRoute("/resume")({
   head: () => ({
     meta: [
-      { title: "AI 定制简历生成 — HireLink AI" },
+      { title: "简历解析与版本原型 — HireLink AI" },
       {
         name: "description",
-        content: "针对目标岗位智能改写简历，关键词对齐、结构优化，一键生成排版精美的定制简历。",
+        content: "简历文本解析、结构化字段和版本管理交互原型。",
       },
-      { property: "og:title", content: "AI 定制简历生成 — HireLink AI" },
-      { property: "og:description", content: "LLM + RAG 驱动的岗位定制简历生成。" },
+      { property: "og:title", content: "简历解析与版本原型 — HireLink AI" },
+      { property: "og:description", content: "当前模板预览为前端原型，不代表已实现 RAG。" },
     ],
   }),
   component: ResumePage,
@@ -93,7 +93,7 @@ function ResumePage() {
   const [visibleBlocks, setVisibleBlocks] = useState(0);
   const resume = useStoredResume();
 
-  // 将上传简历解析出的关键信息融合进岗位定制模板（前端模拟 RAG 融合）
+  // 将上传简历解析出的关键信息融合进固定模板，仅用于当前前端原型。
   const blocks: ResumeBlock[] = (() => {
     const base = RESUME_BY_TARGET[target].map((b) => ({ ...b, lines: [...b.lines] }));
     if (!resume) return base;
@@ -128,8 +128,8 @@ function ResumePage() {
     <PageShell>
       <FeatureHeader
         n="02"
-        title="AI 定制简历生成"
-        desc="填写关键信息并选择目标岗位，AI 将针对岗位智能改写并实时渲染一份定制简历。"
+        title="简历解析与版本原型"
+        desc="展示结构化字段、版本管理和固定模板预览。当前页面不宣称已接入 RAG 或真实后端模型。"
       />
       <div className="mx-auto max-w-6xl space-y-6 px-5 pb-6 sm:px-8">
         <ResumeUpload compact />
@@ -174,7 +174,7 @@ function ResumePage() {
             )}
           </button>
           <p className="mt-3 text-center text-xs text-muted-foreground">
-            由 LLM + RAG 针对岗位智能改写
+            固定模板预览，仅用于前端交互演示
           </p>
         </div>
 

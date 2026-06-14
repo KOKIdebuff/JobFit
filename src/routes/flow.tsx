@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Target, FileText, Network, Video, Send, RefreshCw, ArrowRight } from "lucide-react";
+import { Target, FileText, Bot, Video, ClipboardCheck, RefreshCw, ArrowRight } from "lucide-react";
 import { PageShell } from "@/components/site/PageShell";
 
 export const Route = createFileRoute("/flow")({
@@ -9,10 +9,10 @@ export const Route = createFileRoute("/flow")({
       {
         name: "description",
         content:
-          "HireLink AI 完整求职服务闭环：投递意向、岗位匹配、简历定制、人脉内推、数字人面试、反馈优化。",
+          "HireLink P0 流程：简历解析、岗位理解、规则匹配、面试与任务、结构化报告、HR 确认与反馈。",
       },
       { property: "og:title", content: "产品流程图 — HireLink AI" },
-      { property: "og:description", content: "从投递意向到反馈优化的完整智能求职闭环。" },
+      { property: "og:description", content: "固定 Agent 工作流驱动的招聘能力验证闭环。" },
     ],
   }),
   component: FlowPage,
@@ -20,44 +20,44 @@ export const Route = createFileRoute("/flow")({
 
 const STEPS = [
   {
-    icon: Send,
-    title: "投递意向",
-    desc: "学生填写求职意向、技能与期望，构建个人能力画像。",
-    to: undefined,
+    icon: FileText,
+    title: "简历解析",
+    desc: "提取结构化简历字段并生成带证据的职业画像。",
+    to: "/resume",
     color: "#4285f4",
   },
   {
-    icon: Target,
-    title: "岗位匹配",
-    desc: "向量语义召回 + 评分模型，输出带匹配度的岗位推荐。",
-    to: "/match",
+    icon: Bot,
+    title: "岗位理解",
+    desc: "固定 Agent 节点解析 JD，HR 确认后才进入下游流程。",
+    to: undefined,
     color: "#9b72f9",
   },
   {
-    icon: FileText,
-    title: "简历定制",
-    desc: "LLM + RAG 针对岗位智能改写，生成定制化简历。",
-    to: "/resume",
+    icon: Target,
+    title: "规则匹配",
+    desc: "确定性规则负责评分，AI 只解释理由、缺口和证据。",
+    to: "/match",
     color: "#ea4c89",
   },
   {
-    icon: Network,
-    title: "人脉内推",
-    desc: "关系图谱识别最短内推路径，发起精准内推请求。",
-    to: "/network",
+    icon: Video,
+    title: "轻量面试与任务",
+    desc: "逐题回答、浏览器实时转写与岗位任务共同形成能力证据。",
+    to: "/interview",
     color: "#f9ab00",
   },
   {
-    icon: Video,
-    title: "数字人面试",
-    desc: "数字人面试官实时提问，评分模型生成反馈报告。",
-    to: "/interview",
+    icon: ClipboardCheck,
+    title: "结构化报告",
+    desc: "一个报告实体按权限提供 HR 版和求职者版两个视图。",
+    to: undefined,
     color: "#34a853",
   },
   {
     icon: RefreshCw,
-    title: "反馈优化",
-    desc: "汇总匹配与面试数据，迭代画像并回到岗位匹配。",
+    title: "HR 确认与反馈",
+    desc: "HR 确认报告后，求职者才能查看成长反馈。",
     to: undefined,
     color: "#4285f4",
   },
@@ -120,7 +120,7 @@ function FlowPage() {
         {/* Loop indicator */}
         <div className="mt-10 flex items-center justify-center gap-3 rounded-full border border-border bg-card px-6 py-4 text-sm text-muted-foreground shadow-soft">
           <RefreshCw className="h-4 w-4" />
-          反馈优化的结果回流至「投递意向」与「岗位匹配」，形成持续进化的求职闭环。
+          P0 使用固定 Agent 工作流；RAG、向量数据库、WebRTC 和数字人仅作为后续规划。
         </div>
       </div>
     </PageShell>

@@ -17,13 +17,13 @@ export function Footer() {
               岗位匹配
             </Link>
             <Link to="/resume" className="text-muted-foreground hover:text-foreground">
-              简历定制
+              简历原型
             </Link>
             <Link to="/network" className="text-muted-foreground hover:text-foreground">
-              人脉地图
+              后续人脉
             </Link>
             <Link to="/interview" className="text-muted-foreground hover:text-foreground">
-              数字人面试
+              轻量面试
             </Link>
             <Link to="/flow" className="text-muted-foreground hover:text-foreground">
               产品流程

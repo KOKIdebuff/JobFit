@@ -10,13 +10,13 @@ import avatarImg from "@/assets/digital-interviewer.jpg";
 export const Route = createFileRoute("/interview")({
   head: () => ({
     meta: [
-      { title: "AI 数字人虚拟面试 — HireLink AI" },
+      { title: "轻量面试交互原型 — HireLink AI" },
       {
         name: "description",
-        content: "数字人面试官实时提问，多维度评分模型生成结构化面试反馈报告。",
+        content: "逐题文字作答和结构化报告样式原型；数字人和 WebRTC 属于后续规划。",
       },
-      { property: "og:title", content: "AI 数字人虚拟面试 — HireLink AI" },
-      { property: "og:description", content: "数字人 + WebRTC + 评分模型的智能模拟面试。" },
+      { property: "og:title", content: "轻量面试交互原型 — HireLink AI" },
+      { property: "og:description", content: "当前为文字作答原型，不宣称已实现数字人或 WebRTC。" },
     ],
   }),
   component: InterviewPage,
@@ -56,8 +56,8 @@ function InterviewPage() {
     <PageShell>
       <FeatureHeader
         n="04"
-        title="AI 数字人虚拟面试"
-        desc="数字人面试官将逐题提问，作答完成后由评分模型生成多维度面试反馈报告。"
+        title="轻量面试交互原型"
+        desc="当前页面展示逐题文字作答和报告样式。P0 采用浏览器实时转写与答后确认；数字人和 WebRTC 属于后续规划。"
       />
       <div className="mx-auto max-w-5xl px-5 pb-24 sm:px-8">
         <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
@@ -66,19 +66,19 @@ function InterviewPage() {
             <div className="relative aspect-[3/4]">
               <img
                 src={avatarImg}
-                alt="AI 数字人面试官"
+                alt="面试页面静态头像"
                 width={768}
                 height={1024}
                 loading="lazy"
                 className="h-full w-full object-cover"
               />
               <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-xs text-white backdrop-blur">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" /> 实时面试中
+                <span className="h-2 w-2 rounded-full bg-amber-500" /> 交互原型
               </div>
             </div>
             <div className="p-5">
-              <h3 className="font-semibold">AI 面试官 · 小铭</h3>
-              <p className="mt-1 text-sm text-muted-foreground">数字人 · WebRTC 实时驱动</p>
+              <h3 className="font-semibold">面试引导头像 · 小铭</h3>
+              <p className="mt-1 text-sm text-muted-foreground">静态展示 · 非数字人 / WebRTC</p>
             </div>
           </div>
 
@@ -91,7 +91,7 @@ function InterviewPage() {
                 </div>
                 <h2 className="mt-5 text-xl font-semibold">准备好开始模拟面试了吗？</h2>
                 <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-                  共 {total} 道问题，数字人将逐题提问，结束后生成你的面试评分报告。
+                  共 {total} 道示例问题，完成后展示结构化报告样式。
                 </p>
                 <button
                   onClick={() => setStarted(true)}

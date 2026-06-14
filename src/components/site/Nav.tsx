@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { to: "/match", label: "岗位匹配" },
-  { to: "/resume", label: "简历定制" },
-  { to: "/network", label: "人脉地图" },
-  { to: "/interview", label: "数字人面试" },
+  { to: "/resume", label: "简历原型" },
+  { to: "/network", label: "后续人脉" },
+  { to: "/interview", label: "轻量面试" },
   { to: "/flow", label: "产品流程" },
 ] as const;
 

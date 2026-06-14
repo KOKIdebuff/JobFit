@@ -81,20 +81,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "HireLink AI — AI 人才服务智能体平台" },
       {
         name: "description",
-        content: "岗位精准匹配、定制简历生成、职业人脉地图与数字人虚拟面试，让求职更高效。",
+        content:
+          "面向招聘能力验证的产品原型，围绕简历解析、规则匹配、轻量面试和结构化报告展示 P0 流程。",
       },
       { name: "author", content: "HireLink AI" },
       { property: "og:title", content: "HireLink AI — AI 人才服务智能体平台" },
       {
         property: "og:description",
-        content: "岗位精准匹配、定制简历生成、职业人脉地图与数字人虚拟面试，让求职更高效。",
+        content: "简历解析、规则评分、固定 Agent 工作流、轻量面试与结构化 AI 报告。",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "HireLink AI — AI 人才服务智能体平台" },
       {
         name: "twitter:description",
-        content: "岗位精准匹配、定制简历生成、职业人脉地图与数字人虚拟面试，让求职更高效。",
+        content: "简历解析、规则评分、固定 Agent 工作流、轻量面试与结构化 AI 报告。",
       },
       {
         property: "og:image",

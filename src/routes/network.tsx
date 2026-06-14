@@ -8,12 +8,12 @@ import { NETWORK_NODES, type NetworkNode } from "@/lib/mock-data";
 export const Route = createFileRoute("/network")({
   head: () => ({
     meta: [
-      { title: "AI 职业人脉地图 — HireLink AI" },
+      { title: "后续规划：职业人脉原型 — HireLink AI" },
       {
         name: "description",
-        content: "可视化校友、同行与内推人关系，自动识别最短内推路径，让连接更有温度。",
+        content: "非 P0 的职业人脉概念原型，当前不作为真实招聘主流程能力。",
       },
-      { property: "og:title", content: "AI 职业人脉地图 — HireLink AI" },
+      { property: "og:title", content: "后续规划：职业人脉原型 — HireLink AI" },
       { property: "og:description", content: "基于关系图谱的智能内推路径推荐。" },
     ],
   }),
@@ -36,8 +36,8 @@ function NetworkPage() {
     <PageShell>
       <FeatureHeader
         n="03"
-        title="AI 职业人脉地图"
-        desc="以你为中心，自动梳理校友、同行与内推人关系，点击节点查看内推路径并发起请求。"
+        title="后续规划：职业人脉原型"
+        desc="该页面是非 P0 概念演示，使用预置节点展示交互，不代表当前已接入真实关系数据或内推服务。"
       />
       <div className="mx-auto grid max-w-6xl gap-6 px-5 pb-24 sm:px-8 lg:grid-cols-[1fr_340px]">
         {/* Graph */}

@@ -16,10 +16,10 @@ export const Route = createFileRoute("/match")({
       { title: "AI 岗位精准匹配 — HireLink AI" },
       {
         name: "description",
-        content: "输入求职意向，基于向量语义匹配获得带匹配度评分与匹配理由的岗位推荐。",
+        content: "前端规则匹配交互原型；P0 后端采用可复算规则评分，并由 AI 生成解释。",
       },
       { property: "og:title", content: "AI 岗位精准匹配 — HireLink AI" },
-      { property: "og:description", content: "向量语义召回 + 评分模型，让岗位推荐更精准。" },
+      { property: "og:description", content: "规则评分 + AI 解释的可解释人岗匹配方案。" },
     ],
   }),
   component: MatchPage,
@@ -48,7 +48,7 @@ function MatchPage() {
               s.toLowerCase().includes(t.toLowerCase()),
           ),
         );
-        // 简历命中的技能越多，匹配度越高（前端模拟向量加权）
+        // 简历命中的技能越多，匹配度越高（仅用于当前前端规则原型）
         const skillBoost = resume ? Math.min(6, hits.length * 2) : 0;
         const completeBoost = resume && resume.completeness >= 70 ? 2 : 0;
         const boost = skillBoost + completeBoost;
@@ -65,7 +65,7 @@ function MatchPage() {
             label: "基础语义匹配",
             score: j.score,
             max: 99,
-            detail: "岗位描述与求职意向的向量语义相似度",
+            detail: "预置岗位样例的基础匹配分，仅用于当前前端原型",
           },
           {
             label: "命中技能加权",
@@ -100,8 +100,8 @@ function MatchPage() {
     <PageShell>
       <FeatureHeader
         n="01"
-        title="AI 岗位精准匹配"
-        desc="上传简历并选择求职意向，AI 将解析你的技能与经历，基于向量语义召回与评分模型排序最匹配的岗位。"
+        title="可解释岗位匹配原型"
+        desc="当前页面使用前端规则和预置岗位演示交互。P0 后端采用规则评分 + AI 解释，不依赖向量数据库。"
       />
       <div className="mx-auto max-w-5xl px-5 pb-24 sm:px-8">
         <div className="mb-6">
