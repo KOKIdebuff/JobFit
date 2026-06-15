@@ -12,9 +12,23 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResumeRouteImport } from './routes/resume'
 import { Route as NetworkRouteImport } from './routes/network'
 import { Route as MatchRouteImport } from './routes/match'
+import { Route as JobProfileRouteImport } from './routes/job-profile'
+import { Route as JdParseRouteImport } from './routes/jd-parse'
 import { Route as InterviewRouteImport } from './routes/interview'
+import { Route as HrRouteImport } from './routes/hr'
 import { Route as FlowRouteImport } from './routes/flow'
+import { Route as CandidatesRouteImport } from './routes/candidates'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HrIndexRouteImport } from './routes/hr.index'
+import { Route as HrApplicationsApplicationIdRouteImport } from './routes/hr.applications.$applicationId'
+import { Route as HrJobsJobIdCandidatesRouteImport } from './routes/hr.jobs.$jobId.candidates'
+import { Route as HrApplicationsApplicationIdReportRouteImport } from './routes/hr.applications.$applicationId_.report'
+import { Route as HrApplicationsApplicationIdAssessmentPlanRouteImport } from './routes/hr.applications.$applicationId_.assessment-plan'
+import { Route as CandidateApplicationsApplicationIdTrialRouteImport } from './routes/candidate.applications.$applicationId.trial'
+import { Route as HrJobsJobIdCandidatesApplicationIdRouteImport } from './routes/hr.jobs.$jobId.candidates_.$applicationId'
+import { Route as HrApplicationsApplicationIdTrialSetupRouteImport } from './routes/hr.applications.$applicationId_.trial.setup'
+import { Route as HrApplicationsApplicationIdTrialResultRouteImport } from './routes/hr.applications.$applicationId_.trial.result'
+import { Route as HrJobsJobIdCandidatesApplicationIdAssessmentPlanRouteImport } from './routes/hr.jobs.$jobId.candidates_.$applicationId_.assessment-plan'
 
 const ResumeRoute = ResumeRouteImport.update({
   id: '/resume',
@@ -31,9 +45,24 @@ const MatchRoute = MatchRouteImport.update({
   path: '/match',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JobProfileRoute = JobProfileRouteImport.update({
+  id: '/job-profile',
+  path: '/job-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JdParseRoute = JdParseRouteImport.update({
+  id: '/jd-parse',
+  path: '/jd-parse',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InterviewRoute = InterviewRouteImport.update({
   id: '/interview',
   path: '/interview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HrRoute = HrRouteImport.update({
+  id: '/hr',
+  path: '/hr',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FlowRoute = FlowRouteImport.update({
@@ -41,59 +70,221 @@ const FlowRoute = FlowRouteImport.update({
   path: '/flow',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CandidatesRoute = CandidatesRouteImport.update({
+  id: '/candidates',
+  path: '/candidates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HrIndexRoute = HrIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HrRoute,
+} as any)
+const HrApplicationsApplicationIdRoute =
+  HrApplicationsApplicationIdRouteImport.update({
+    id: '/applications/$applicationId',
+    path: '/applications/$applicationId',
+    getParentRoute: () => HrRoute,
+  } as any)
+const HrJobsJobIdCandidatesRoute = HrJobsJobIdCandidatesRouteImport.update({
+  id: '/jobs/$jobId/candidates',
+  path: '/jobs/$jobId/candidates',
+  getParentRoute: () => HrRoute,
+} as any)
+const HrApplicationsApplicationIdReportRoute =
+  HrApplicationsApplicationIdReportRouteImport.update({
+    id: '/applications/$applicationId_/report',
+    path: '/applications/$applicationId/report',
+    getParentRoute: () => HrRoute,
+  } as any)
+const HrApplicationsApplicationIdAssessmentPlanRoute =
+  HrApplicationsApplicationIdAssessmentPlanRouteImport.update({
+    id: '/applications/$applicationId_/assessment-plan',
+    path: '/applications/$applicationId/assessment-plan',
+    getParentRoute: () => HrRoute,
+  } as any)
+const CandidateApplicationsApplicationIdTrialRoute =
+  CandidateApplicationsApplicationIdTrialRouteImport.update({
+    id: '/candidate/applications/$applicationId/trial',
+    path: '/candidate/applications/$applicationId/trial',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const HrJobsJobIdCandidatesApplicationIdRoute =
+  HrJobsJobIdCandidatesApplicationIdRouteImport.update({
+    id: '/jobs/$jobId/candidates_/$applicationId',
+    path: '/jobs/$jobId/candidates/$applicationId',
+    getParentRoute: () => HrRoute,
+  } as any)
+const HrApplicationsApplicationIdTrialSetupRoute =
+  HrApplicationsApplicationIdTrialSetupRouteImport.update({
+    id: '/applications/$applicationId_/trial/setup',
+    path: '/applications/$applicationId/trial/setup',
+    getParentRoute: () => HrRoute,
+  } as any)
+const HrApplicationsApplicationIdTrialResultRoute =
+  HrApplicationsApplicationIdTrialResultRouteImport.update({
+    id: '/applications/$applicationId_/trial/result',
+    path: '/applications/$applicationId/trial/result',
+    getParentRoute: () => HrRoute,
+  } as any)
+const HrJobsJobIdCandidatesApplicationIdAssessmentPlanRoute =
+  HrJobsJobIdCandidatesApplicationIdAssessmentPlanRouteImport.update({
+    id: '/jobs/$jobId/candidates_/$applicationId_/assessment-plan',
+    path: '/jobs/$jobId/candidates/$applicationId/assessment-plan',
+    getParentRoute: () => HrRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/candidates': typeof CandidatesRoute
   '/flow': typeof FlowRoute
+  '/hr': typeof HrRouteWithChildren
   '/interview': typeof InterviewRoute
+  '/jd-parse': typeof JdParseRoute
+  '/job-profile': typeof JobProfileRoute
   '/match': typeof MatchRoute
   '/network': typeof NetworkRoute
   '/resume': typeof ResumeRoute
+  '/hr/': typeof HrIndexRoute
+  '/hr/applications/$applicationId': typeof HrApplicationsApplicationIdRoute
+  '/candidate/applications/$applicationId/trial': typeof CandidateApplicationsApplicationIdTrialRoute
+  '/hr/applications/$applicationId/assessment-plan': typeof HrApplicationsApplicationIdAssessmentPlanRoute
+  '/hr/applications/$applicationId/report': typeof HrApplicationsApplicationIdReportRoute
+  '/hr/jobs/$jobId/candidates': typeof HrJobsJobIdCandidatesRoute
+  '/hr/applications/$applicationId/trial/result': typeof HrApplicationsApplicationIdTrialResultRoute
+  '/hr/applications/$applicationId/trial/setup': typeof HrApplicationsApplicationIdTrialSetupRoute
+  '/hr/jobs/$jobId/candidates/$applicationId': typeof HrJobsJobIdCandidatesApplicationIdRoute
+  '/hr/jobs/$jobId/candidates/$applicationId/assessment-plan': typeof HrJobsJobIdCandidatesApplicationIdAssessmentPlanRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/candidates': typeof CandidatesRoute
   '/flow': typeof FlowRoute
   '/interview': typeof InterviewRoute
+  '/jd-parse': typeof JdParseRoute
+  '/job-profile': typeof JobProfileRoute
   '/match': typeof MatchRoute
   '/network': typeof NetworkRoute
   '/resume': typeof ResumeRoute
+  '/hr': typeof HrIndexRoute
+  '/hr/applications/$applicationId': typeof HrApplicationsApplicationIdRoute
+  '/candidate/applications/$applicationId/trial': typeof CandidateApplicationsApplicationIdTrialRoute
+  '/hr/applications/$applicationId/assessment-plan': typeof HrApplicationsApplicationIdAssessmentPlanRoute
+  '/hr/applications/$applicationId/report': typeof HrApplicationsApplicationIdReportRoute
+  '/hr/jobs/$jobId/candidates': typeof HrJobsJobIdCandidatesRoute
+  '/hr/applications/$applicationId/trial/result': typeof HrApplicationsApplicationIdTrialResultRoute
+  '/hr/applications/$applicationId/trial/setup': typeof HrApplicationsApplicationIdTrialSetupRoute
+  '/hr/jobs/$jobId/candidates/$applicationId': typeof HrJobsJobIdCandidatesApplicationIdRoute
+  '/hr/jobs/$jobId/candidates/$applicationId/assessment-plan': typeof HrJobsJobIdCandidatesApplicationIdAssessmentPlanRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/candidates': typeof CandidatesRoute
   '/flow': typeof FlowRoute
+  '/hr': typeof HrRouteWithChildren
   '/interview': typeof InterviewRoute
+  '/jd-parse': typeof JdParseRoute
+  '/job-profile': typeof JobProfileRoute
   '/match': typeof MatchRoute
   '/network': typeof NetworkRoute
   '/resume': typeof ResumeRoute
+  '/hr/': typeof HrIndexRoute
+  '/hr/applications/$applicationId': typeof HrApplicationsApplicationIdRoute
+  '/candidate/applications/$applicationId/trial': typeof CandidateApplicationsApplicationIdTrialRoute
+  '/hr/applications/$applicationId_/assessment-plan': typeof HrApplicationsApplicationIdAssessmentPlanRoute
+  '/hr/applications/$applicationId_/report': typeof HrApplicationsApplicationIdReportRoute
+  '/hr/jobs/$jobId/candidates': typeof HrJobsJobIdCandidatesRoute
+  '/hr/applications/$applicationId_/trial/result': typeof HrApplicationsApplicationIdTrialResultRoute
+  '/hr/applications/$applicationId_/trial/setup': typeof HrApplicationsApplicationIdTrialSetupRoute
+  '/hr/jobs/$jobId/candidates_/$applicationId': typeof HrJobsJobIdCandidatesApplicationIdRoute
+  '/hr/jobs/$jobId/candidates_/$applicationId_/assessment-plan': typeof HrJobsJobIdCandidatesApplicationIdAssessmentPlanRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/flow' | '/interview' | '/match' | '/network' | '/resume'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/flow' | '/interview' | '/match' | '/network' | '/resume'
-  id:
-    | '__root__'
+  fullPaths:
     | '/'
+    | '/candidates'
     | '/flow'
+    | '/hr'
     | '/interview'
+    | '/jd-parse'
+    | '/job-profile'
     | '/match'
     | '/network'
     | '/resume'
+    | '/hr/'
+    | '/hr/applications/$applicationId'
+    | '/candidate/applications/$applicationId/trial'
+    | '/hr/applications/$applicationId/assessment-plan'
+    | '/hr/applications/$applicationId/report'
+    | '/hr/jobs/$jobId/candidates'
+    | '/hr/applications/$applicationId/trial/result'
+    | '/hr/applications/$applicationId/trial/setup'
+    | '/hr/jobs/$jobId/candidates/$applicationId'
+    | '/hr/jobs/$jobId/candidates/$applicationId/assessment-plan'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/candidates'
+    | '/flow'
+    | '/interview'
+    | '/jd-parse'
+    | '/job-profile'
+    | '/match'
+    | '/network'
+    | '/resume'
+    | '/hr'
+    | '/hr/applications/$applicationId'
+    | '/candidate/applications/$applicationId/trial'
+    | '/hr/applications/$applicationId/assessment-plan'
+    | '/hr/applications/$applicationId/report'
+    | '/hr/jobs/$jobId/candidates'
+    | '/hr/applications/$applicationId/trial/result'
+    | '/hr/applications/$applicationId/trial/setup'
+    | '/hr/jobs/$jobId/candidates/$applicationId'
+    | '/hr/jobs/$jobId/candidates/$applicationId/assessment-plan'
+  id:
+    | '__root__'
+    | '/'
+    | '/candidates'
+    | '/flow'
+    | '/hr'
+    | '/interview'
+    | '/jd-parse'
+    | '/job-profile'
+    | '/match'
+    | '/network'
+    | '/resume'
+    | '/hr/'
+    | '/hr/applications/$applicationId'
+    | '/candidate/applications/$applicationId/trial'
+    | '/hr/applications/$applicationId_/assessment-plan'
+    | '/hr/applications/$applicationId_/report'
+    | '/hr/jobs/$jobId/candidates'
+    | '/hr/applications/$applicationId_/trial/result'
+    | '/hr/applications/$applicationId_/trial/setup'
+    | '/hr/jobs/$jobId/candidates_/$applicationId'
+    | '/hr/jobs/$jobId/candidates_/$applicationId_/assessment-plan'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CandidatesRoute: typeof CandidatesRoute
   FlowRoute: typeof FlowRoute
+  HrRoute: typeof HrRouteWithChildren
   InterviewRoute: typeof InterviewRoute
+  JdParseRoute: typeof JdParseRoute
+  JobProfileRoute: typeof JobProfileRoute
   MatchRoute: typeof MatchRoute
   NetworkRoute: typeof NetworkRoute
   ResumeRoute: typeof ResumeRoute
+  CandidateApplicationsApplicationIdTrialRoute: typeof CandidateApplicationsApplicationIdTrialRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -119,11 +310,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/job-profile': {
+      id: '/job-profile'
+      path: '/job-profile'
+      fullPath: '/job-profile'
+      preLoaderRoute: typeof JobProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jd-parse': {
+      id: '/jd-parse'
+      path: '/jd-parse'
+      fullPath: '/jd-parse'
+      preLoaderRoute: typeof JdParseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/interview': {
       id: '/interview'
       path: '/interview'
       fullPath: '/interview'
       preLoaderRoute: typeof InterviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hr': {
+      id: '/hr'
+      path: '/hr'
+      fullPath: '/hr'
+      preLoaderRoute: typeof HrRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/flow': {
@@ -133,6 +345,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FlowRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/candidates': {
+      id: '/candidates'
+      path: '/candidates'
+      fullPath: '/candidates'
+      preLoaderRoute: typeof CandidatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -140,16 +359,124 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hr/': {
+      id: '/hr/'
+      path: '/'
+      fullPath: '/hr/'
+      preLoaderRoute: typeof HrIndexRouteImport
+      parentRoute: typeof HrRoute
+    }
+    '/hr/applications/$applicationId': {
+      id: '/hr/applications/$applicationId'
+      path: '/applications/$applicationId'
+      fullPath: '/hr/applications/$applicationId'
+      preLoaderRoute: typeof HrApplicationsApplicationIdRouteImport
+      parentRoute: typeof HrRoute
+    }
+    '/hr/jobs/$jobId/candidates': {
+      id: '/hr/jobs/$jobId/candidates'
+      path: '/jobs/$jobId/candidates'
+      fullPath: '/hr/jobs/$jobId/candidates'
+      preLoaderRoute: typeof HrJobsJobIdCandidatesRouteImport
+      parentRoute: typeof HrRoute
+    }
+    '/hr/applications/$applicationId_/report': {
+      id: '/hr/applications/$applicationId_/report'
+      path: '/applications/$applicationId/report'
+      fullPath: '/hr/applications/$applicationId/report'
+      preLoaderRoute: typeof HrApplicationsApplicationIdReportRouteImport
+      parentRoute: typeof HrRoute
+    }
+    '/hr/applications/$applicationId_/assessment-plan': {
+      id: '/hr/applications/$applicationId_/assessment-plan'
+      path: '/applications/$applicationId/assessment-plan'
+      fullPath: '/hr/applications/$applicationId/assessment-plan'
+      preLoaderRoute: typeof HrApplicationsApplicationIdAssessmentPlanRouteImport
+      parentRoute: typeof HrRoute
+    }
+    '/candidate/applications/$applicationId/trial': {
+      id: '/candidate/applications/$applicationId/trial'
+      path: '/candidate/applications/$applicationId/trial'
+      fullPath: '/candidate/applications/$applicationId/trial'
+      preLoaderRoute: typeof CandidateApplicationsApplicationIdTrialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hr/jobs/$jobId/candidates_/$applicationId': {
+      id: '/hr/jobs/$jobId/candidates_/$applicationId'
+      path: '/jobs/$jobId/candidates/$applicationId'
+      fullPath: '/hr/jobs/$jobId/candidates/$applicationId'
+      preLoaderRoute: typeof HrJobsJobIdCandidatesApplicationIdRouteImport
+      parentRoute: typeof HrRoute
+    }
+    '/hr/applications/$applicationId_/trial/setup': {
+      id: '/hr/applications/$applicationId_/trial/setup'
+      path: '/applications/$applicationId/trial/setup'
+      fullPath: '/hr/applications/$applicationId/trial/setup'
+      preLoaderRoute: typeof HrApplicationsApplicationIdTrialSetupRouteImport
+      parentRoute: typeof HrRoute
+    }
+    '/hr/applications/$applicationId_/trial/result': {
+      id: '/hr/applications/$applicationId_/trial/result'
+      path: '/applications/$applicationId/trial/result'
+      fullPath: '/hr/applications/$applicationId/trial/result'
+      preLoaderRoute: typeof HrApplicationsApplicationIdTrialResultRouteImport
+      parentRoute: typeof HrRoute
+    }
+    '/hr/jobs/$jobId/candidates_/$applicationId_/assessment-plan': {
+      id: '/hr/jobs/$jobId/candidates_/$applicationId_/assessment-plan'
+      path: '/jobs/$jobId/candidates/$applicationId/assessment-plan'
+      fullPath: '/hr/jobs/$jobId/candidates/$applicationId/assessment-plan'
+      preLoaderRoute: typeof HrJobsJobIdCandidatesApplicationIdAssessmentPlanRouteImport
+      parentRoute: typeof HrRoute
+    }
   }
 }
 
+interface HrRouteChildren {
+  HrIndexRoute: typeof HrIndexRoute
+  HrApplicationsApplicationIdRoute: typeof HrApplicationsApplicationIdRoute
+  HrApplicationsApplicationIdAssessmentPlanRoute: typeof HrApplicationsApplicationIdAssessmentPlanRoute
+  HrApplicationsApplicationIdReportRoute: typeof HrApplicationsApplicationIdReportRoute
+  HrJobsJobIdCandidatesRoute: typeof HrJobsJobIdCandidatesRoute
+  HrApplicationsApplicationIdTrialResultRoute: typeof HrApplicationsApplicationIdTrialResultRoute
+  HrApplicationsApplicationIdTrialSetupRoute: typeof HrApplicationsApplicationIdTrialSetupRoute
+  HrJobsJobIdCandidatesApplicationIdRoute: typeof HrJobsJobIdCandidatesApplicationIdRoute
+  HrJobsJobIdCandidatesApplicationIdAssessmentPlanRoute: typeof HrJobsJobIdCandidatesApplicationIdAssessmentPlanRoute
+}
+
+const HrRouteChildren: HrRouteChildren = {
+  HrIndexRoute: HrIndexRoute,
+  HrApplicationsApplicationIdRoute: HrApplicationsApplicationIdRoute,
+  HrApplicationsApplicationIdAssessmentPlanRoute:
+    HrApplicationsApplicationIdAssessmentPlanRoute,
+  HrApplicationsApplicationIdReportRoute:
+    HrApplicationsApplicationIdReportRoute,
+  HrJobsJobIdCandidatesRoute: HrJobsJobIdCandidatesRoute,
+  HrApplicationsApplicationIdTrialResultRoute:
+    HrApplicationsApplicationIdTrialResultRoute,
+  HrApplicationsApplicationIdTrialSetupRoute:
+    HrApplicationsApplicationIdTrialSetupRoute,
+  HrJobsJobIdCandidatesApplicationIdRoute:
+    HrJobsJobIdCandidatesApplicationIdRoute,
+  HrJobsJobIdCandidatesApplicationIdAssessmentPlanRoute:
+    HrJobsJobIdCandidatesApplicationIdAssessmentPlanRoute,
+}
+
+const HrRouteWithChildren = HrRoute._addFileChildren(HrRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CandidatesRoute: CandidatesRoute,
   FlowRoute: FlowRoute,
+  HrRoute: HrRouteWithChildren,
   InterviewRoute: InterviewRoute,
+  JdParseRoute: JdParseRoute,
+  JobProfileRoute: JobProfileRoute,
   MatchRoute: MatchRoute,
   NetworkRoute: NetworkRoute,
   ResumeRoute: ResumeRoute,
+  CandidateApplicationsApplicationIdTrialRoute:
+    CandidateApplicationsApplicationIdTrialRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
