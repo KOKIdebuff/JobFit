@@ -98,11 +98,7 @@ function MatchPage() {
 
   return (
     <PageShell>
-      <FeatureHeader
-        n="01"
-        title="可解释岗位匹配原型"
-        desc="当前页面使用前端规则和预置岗位演示交互。P0 后端采用规则评分 + AI 解释，不依赖向量数据库。"
-      />
+      <FeatureHeader n="01" title="精准匹配岗位" />
       <div className="mx-auto max-w-5xl px-5 pb-24 sm:px-8">
         <div className="mb-6">
           <ResumeUpload />
@@ -275,7 +271,7 @@ export function Field({ label, children }: { label: string; children: React.Reac
   );
 }
 
-export function FeatureHeader({ n, title, desc }: { n: string; title: string; desc: string }) {
+export function FeatureHeader({ n, title, desc }: { n: string; title: string; desc?: string }) {
   return (
     <section className="relative overflow-hidden px-5 pb-10 pt-14 sm:px-8 sm:pt-16">
       <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-56 max-w-2xl bg-rainbow opacity-[0.08] blur-[80px]" />
@@ -284,7 +280,7 @@ export function FeatureHeader({ n, title, desc }: { n: string; title: string; de
           核心功能 {n}
         </div>
         <h1 className="mt-2 text-3xl font-semibold sm:text-5xl">{title}</h1>
-        <p className="mt-4 max-w-2xl text-muted-foreground">{desc}</p>
+        {desc && <p className="mt-4 max-w-2xl text-muted-foreground">{desc}</p>}
       </div>
     </section>
   );

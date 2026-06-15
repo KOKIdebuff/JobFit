@@ -126,11 +126,7 @@ function ResumePage() {
 
   return (
     <PageShell>
-      <FeatureHeader
-        n="02"
-        title="简历解析与版本原型"
-        desc="展示结构化字段、版本管理和固定模板预览。当前页面不宣称已接入 RAG 或真实后端模型。"
-      />
+      <FeatureHeader n="02" title="定制简历生成" />
       <div className="mx-auto max-w-6xl space-y-6 px-5 pb-6 sm:px-8">
         <ResumeUpload compact />
         <ResumeVersions current={resume} />

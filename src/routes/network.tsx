@@ -34,11 +34,7 @@ function NetworkPage() {
 
   return (
     <PageShell>
-      <FeatureHeader
-        n="03"
-        title="后续规划：职业人脉原型"
-        desc="该页面是非 P0 概念演示，使用预置节点展示交互，不代表当前已接入真实关系数据或内推服务。"
-      />
+      <FeatureHeader n="03" title="职业人脉地图" />
       <div className="mx-auto grid max-w-6xl gap-6 px-5 pb-24 sm:px-8 lg:grid-cols-[1fr_340px]">
         {/* Graph */}
         <div className="relative rounded-3xl border border-border bg-card p-4 shadow-soft">

@@ -116,12 +116,6 @@ function FlowPage() {
             );
           })}
         </div>
-
-        {/* Loop indicator */}
-        <div className="mt-10 flex items-center justify-center gap-3 rounded-full border border-border bg-card px-6 py-4 text-sm text-muted-foreground shadow-soft">
-          <RefreshCw className="h-4 w-4" />
-          P0 使用固定 Agent 工作流；RAG、向量数据库、WebRTC 和数字人仅作为后续规划。
-        </div>
       </div>
     </PageShell>
   );

@@ -56,7 +56,7 @@ function InterviewPage() {
     <PageShell>
       <FeatureHeader
         n="04"
-        title="轻量面试交互原型"
+        title="数字人虚拟面试"
         desc="当前页面展示逐题文字作答和报告样式。P0 采用浏览器实时转写与答后确认；数字人和 WebRTC 属于后续规划。"
       />
       <div className="mx-auto max-w-5xl px-5 pb-24 sm:px-8">
