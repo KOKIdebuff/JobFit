@@ -7,7 +7,16 @@ export const DEMO_IDS = {
   matchResult: "match_result_li_ai_pm_001",
 } as const;
 
-const STORAGE_KEY = "hirelink:candidate-detail-demo:v1";
+export const CANDIDATE_APPLICATION_IDS = [
+  DEMO_IDS.application,
+  "application_ai_pm_wang_002",
+  "application_ai_pm_chen_003",
+  "application_ai_pm_zhao_004",
+] as const;
+
+export type CandidateApplicationId = (typeof CANDIDATE_APPLICATION_IDS)[number];
+
+const STORAGE_KEY_PREFIX = "hirelink:candidate-detail-demo:v1";
 const STORAGE_VERSION = 1;
 const AI_RUN_DURATION = 1500;
 
@@ -552,14 +561,271 @@ export const mockCandidateDetail: CandidateDetailDemoState = {
   },
 };
 
+const candidateOverrides: Record<
+  CandidateApplicationId,
+  {
+    candidateId: string;
+    resumeId: string;
+    profileId: string;
+    matchResultId: string;
+    name: string;
+    school: string;
+    major: string;
+    education: string;
+    graduationYear: number;
+    gpa: string;
+    email: string;
+    phone: string;
+    score: number;
+    dimensionScores: [number, number, number, number];
+    skills: string[];
+    summary: string;
+    strengths: string[];
+    projectHighlights: string[];
+    verificationNeeds: string[];
+    appliedAt: string;
+  }
+> = {
+  [DEMO_IDS.application]: {
+    candidateId: DEMO_IDS.candidate,
+    resumeId: DEMO_IDS.resume,
+    profileId: DEMO_IDS.candidateProfile,
+    matchResultId: DEMO_IDS.matchResult,
+    name: "李同学",
+    school: "星河大学",
+    major: "计算机科学与技术",
+    education: "本科",
+    graduationYear: 2026,
+    gpa: "3.8/4.0",
+    email: "l***@example.com",
+    phone: "138****2026",
+    score: 86,
+    dimensionScores: [88, 84, 91, 78],
+    skills: ["LLM", "RAG", "数据分析", "需求分析", "SQL"],
+    summary: "具备较强 AI 产品实践和数据分析能力，但商业化判断与复杂项目推进能力仍需验证。",
+    strengths: ["AI 产品实践", "数据分析", "技术沟通"],
+    projectHighlights: ["AI 简历助手", "校园知识库 RAG 项目"],
+    verificationNeeds: ["需求优先级判断", "复杂项目推进能力", "AI 功能方案设计能力"],
+    appliedAt: CREATED_AT,
+  },
+  application_ai_pm_wang_002: {
+    candidateId: "candidate_wang_002",
+    resumeId: "resume_wang_ai_pm_v3",
+    profileId: "candidate_profile_wang_002",
+    matchResultId: "match_result_wang_ai_pm_002",
+    name: "王思远",
+    school: "北辰大学",
+    major: "信息管理与信息系统",
+    education: "硕士",
+    graduationYear: 2021,
+    gpa: "3.7/4.0",
+    email: "w***@example.com",
+    phone: "139****0621",
+    score: 89,
+    dimensionScores: [90, 92, 88, 84],
+    skills: ["数据产品", "Agent", "指标体系", "跨团队协作", "SQL"],
+    summary:
+      "具备成熟的数据产品与跨团队推进经验，岗位适配度较高，需进一步确认 AI 原生产品方法和校招岗位意向。",
+    strengths: ["数据指标体系", "复杂项目推进", "跨团队协作"],
+    projectHighlights: ["企业经营分析平台", "智能运营 Agent"],
+    verificationNeeds: ["AI 产品方案深度", "岗位动机", "组织适应性"],
+    appliedAt: "2026-06-11T14:20:00+08:00",
+  },
+  application_ai_pm_chen_003: {
+    candidateId: "candidate_chen_003",
+    resumeId: "resume_chen_ai_pm_v2",
+    profileId: "candidate_profile_chen_003",
+    matchResultId: "match_result_chen_ai_pm_003",
+    name: "陈雨桐",
+    school: "东海理工大学",
+    major: "人工智能",
+    education: "硕士",
+    graduationYear: 2023,
+    gpa: "3.6/4.0",
+    email: "c***@example.com",
+    phone: "136****0323",
+    score: 85,
+    dimensionScores: [92, 80, 87, 81],
+    skills: ["大模型", "Python", "增长分析", "Prompt Engineering", "A/B 测试"],
+    summary:
+      "技术理解和独立分析能力突出，能够快速完成 AI 方案验证，但需求取舍与多人协作经验需要进一步验证。",
+    strengths: ["技术理解", "快速原型", "增长分析"],
+    projectHighlights: ["大模型内容助手", "智能增长实验平台"],
+    verificationNeeds: ["需求优先级判断", "跨团队协作", "商业目标拆解"],
+    appliedAt: "2026-06-10T09:45:00+08:00",
+  },
+  application_ai_pm_zhao_004: {
+    candidateId: "candidate_zhao_004",
+    resumeId: "resume_zhao_ai_pm_v1",
+    profileId: "candidate_profile_zhao_004",
+    matchResultId: "match_result_zhao_ai_pm_004",
+    name: "赵晗",
+    school: "南方科技学院",
+    major: "工商管理",
+    education: "本科",
+    graduationYear: 2023,
+    gpa: "3.5/4.0",
+    email: "z***@example.com",
+    phone: "135****0823",
+    score: 78,
+    dimensionScores: [74, 84, 72, 82],
+    skills: ["B 端产品", "SQL", "需求分析", "项目协作", "用户研究"],
+    summary:
+      "B 端产品与需求协作基础扎实，岗位意向明确，但 AI 技术理解和 AI 功能落地经验仍需重点验证。",
+    strengths: ["B 端需求分析", "用户研究", "协作推进"],
+    projectHighlights: ["企业客户管理平台", "运营数据看板"],
+    verificationNeeds: ["AI 技术理解", "AI 功能方案设计", "模型风险意识"],
+    appliedAt: "2026-06-09T16:10:00+08:00",
+  },
+};
+
+export function isCandidateApplicationId(value: string): value is CandidateApplicationId {
+  return CANDIDATE_APPLICATION_IDS.includes(value as CandidateApplicationId);
+}
+
+export function createCandidateDetail(applicationId: CandidateApplicationId) {
+  const detail = structuredClone(mockCandidateDetail);
+  const candidate = candidateOverrides[applicationId];
+  const suffix = applicationId.replace("application_ai_pm_", "");
+
+  detail.candidate = {
+    ...detail.candidate,
+    id: candidate.candidateId,
+    candidate_id: candidate.candidateId,
+    name: candidate.name,
+    school: candidate.school,
+    major: candidate.major,
+    education: candidate.education,
+    graduationYear: candidate.graduationYear,
+    gpa: candidate.gpa,
+    email_masked: candidate.email,
+    phone_masked: candidate.phone,
+  };
+  detail.resume = {
+    ...detail.resume,
+    id: candidate.resumeId,
+    resume_id: candidate.resumeId,
+    candidate_id: candidate.candidateId,
+    version: `${candidate.name} · AI 产品经理求职简历`,
+    rawText: `${candidate.school}，${candidate.major}${candidate.education}，GPA ${candidate.gpa}，${candidate.graduationYear} 年毕业。\n\n核心技能：${candidate.skills.join("、")}。\n\n项目经历：${candidate.projectHighlights.join("；")}。\n\n职业摘要：${candidate.summary}`,
+  };
+  detail.candidate_profile = {
+    ...detail.candidate_profile,
+    id: candidate.profileId,
+    candidate_profile_id: candidate.profileId,
+    candidate_id: candidate.candidateId,
+    resume_id: candidate.resumeId,
+    summary: candidate.summary,
+    skills: candidate.skills,
+    strengths: candidate.strengths,
+    projectHighlights: candidate.projectHighlights,
+    verificationNeeds: candidate.verificationNeeds,
+  };
+  detail.candidate_profile.categories = detail.candidate_profile.categories.map((category) => {
+    const conclusions: Record<string, string> = {
+      profile_core_skills: `${candidate.skills.slice(0, 4).join("、")}与岗位核心要求形成直接匹配。`,
+      profile_project_highlight: `${candidate.projectHighlights.join("、")}体现了候选人的主要项目经验。`,
+      profile_role_intent: `目标方向与 AI 产品经理岗位一致，当前匹配分为 ${candidate.score} 分。`,
+      profile_proven_strength: `${candidate.strengths.join("、")}已有项目或经历证据支持。`,
+      profile_to_verify: `${candidate.verificationNeeds.join("、")}仍需通过面试与岗位任务进一步确认。`,
+      profile_growth: `建议围绕${candidate.verificationNeeds[0]}和${candidate.verificationNeeds[1]}继续建立完整能力证据。`,
+    };
+    return {
+      ...category,
+      conclusion: conclusions[category.id] ?? category.conclusion,
+    };
+  });
+  detail.application = {
+    ...detail.application,
+    id: applicationId,
+    application_id: applicationId,
+    candidate_id: candidate.candidateId,
+    resume_id: candidate.resumeId,
+    appliedAt: candidate.appliedAt,
+  };
+  detail.match_result = {
+    ...detail.match_result,
+    id: candidate.matchResultId,
+    match_result_id: candidate.matchResultId,
+    candidate_id: candidate.candidateId,
+    application_id: applicationId,
+    candidate_profile_id: candidate.profileId,
+    total: candidate.score,
+    reasons: [
+      `${candidate.skills.slice(0, 3).join("、")}与岗位关键能力匹配。`,
+      `${candidate.projectHighlights[0]}提供了直接项目证据。`,
+      `${candidate.strengths.join("、")}能够支持岗位核心工作。`,
+    ],
+    gaps: candidate.verificationNeeds.map((item) => `${item}的直接证据仍需补充。`),
+    risks: [
+      `候选人在${candidate.verificationNeeds[0]}方面需要通过结构化问题核实。`,
+      `建议通过岗位任务验证${candidate.verificationNeeds.at(-1)}。`,
+    ],
+    dimensions: detail.match_result.dimensions.map((dimension, index) => ({
+      ...dimension,
+      score: candidate.dimensionScores[index] ?? dimension.score,
+      reason: `${dimension.label}得分为 ${candidate.dimensionScores[index] ?? dimension.score}，主要依据候选人的${candidate.strengths[index % candidate.strengths.length]}证据。`,
+    })),
+  };
+  const evidenceIdMap = new Map(
+    detail.evidence_items.map((item) => [item.id, `${item.id}_${suffix}`]),
+  );
+  detail.evidence_items = detail.evidence_items.map((item, index) => ({
+    ...item,
+    id: evidenceIdMap.get(item.id) ?? item.id,
+    candidate_id: candidate.candidateId,
+    application_id: applicationId,
+    resume_id: candidate.resumeId,
+    title: candidate.projectHighlights[index % candidate.projectHighlights.length] ?? item.title,
+    excerpt: `${candidate.name}在${candidate.projectHighlights[index % candidate.projectHighlights.length]}中体现了${candidate.strengths[index % candidate.strengths.length]}能力，相关经历与目标岗位要求存在直接关联。`,
+  }));
+  detail.candidate_profile.categories = detail.candidate_profile.categories.map((category) => ({
+    ...category,
+    evidence_ids: category.evidence_ids.map((id) => evidenceIdMap.get(id) ?? id),
+  }));
+  detail.match_result.dimensions = detail.match_result.dimensions.map((dimension) => ({
+    ...dimension,
+    evidence_ids: dimension.evidence_ids.map((id) => evidenceIdMap.get(id) ?? id),
+  }));
+  detail.match_result.evidence = detail.evidence_items;
+  detail.candidate_profile.evidence = detail.evidence_items.map((item) => ({
+    conclusion: item.title,
+    excerpt: item.excerpt,
+  }));
+  detail.validation_recommendations = detail.validation_recommendations.map(
+    (recommendation, index) => ({
+      ...recommendation,
+      id: `${recommendation.id}_${suffix}`,
+      candidate_id: candidate.candidateId,
+      application_id: applicationId,
+      title: `建议重点验证“${candidate.verificationNeeds[index] ?? candidate.verificationNeeds[0]}”`,
+    }),
+  );
+  detail.hr_note = {
+    ...detail.hr_note,
+    id: `hr_note_${applicationId}`,
+    application_id: applicationId,
+    content: "",
+  };
+  detail.ai_run = {
+    ...detail.ai_run,
+    id: `ai_run_${applicationId}`,
+    application_id: applicationId,
+  };
+  detail.assessment_plan.focus = candidate.verificationNeeds;
+
+  return detail;
+}
+
 interface PersistedState {
   version: number;
   state: CandidateDetailDemoState;
 }
 
-let state = structuredClone(mockCandidateDetail);
+let activeApplicationId: CandidateApplicationId = DEMO_IDS.application;
+let state = createCandidateDetail(activeApplicationId);
 state.page_status = "loading";
-const serverSnapshot = structuredClone(mockCandidateDetail);
+const serverSnapshot = createCandidateDetail(DEMO_IDS.application);
 serverSnapshot.page_status = "loading";
 let hydrated = false;
 const listeners = new Set<() => void>();
@@ -583,13 +849,16 @@ function persist() {
     version: STORAGE_VERSION,
     state: { ...state, page_status: "ready" },
   };
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+  window.localStorage.setItem(
+    `${STORAGE_KEY_PREFIX}:${state.application.id}`,
+    JSON.stringify(persisted),
+  );
 }
 
-function readPersistedState() {
+function readPersistedState(applicationId: CandidateApplicationId) {
   if (!canUseStorage()) return null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(`${STORAGE_KEY_PREFIX}:${applicationId}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedState;
     return parsed.version === STORAGE_VERSION ? parsed.state : null;
@@ -719,23 +988,27 @@ export const candidateDetailDemoStore = {
 };
 
 export const candidateDetailDemoService = {
-  async getCandidateDetail() {
-    if (hydrated) return state;
+  async getCandidateDetail(applicationId: string = DEMO_IDS.application) {
+    if (!isCandidateApplicationId(applicationId)) return null;
+    if (hydrated && activeApplicationId === applicationId) return state;
+    activeApplicationId = applicationId;
     hydrated = true;
-    update((current) => ({ ...current, page_status: "loading" }), { persist: false });
+    state = { ...createCandidateDetail(applicationId), page_status: "loading" };
+    emit();
     await new Promise((resolve) => setTimeout(resolve, 280));
-    const persisted = readPersistedState();
+    const persisted = readPersistedState(applicationId);
     state = persisted
       ? { ...persisted, page_status: "ready" }
-      : { ...structuredClone(mockCandidateDetail), page_status: "ready" };
+      : { ...createCandidateDetail(applicationId), page_status: "ready" };
     emit();
     resumeGeneration();
     return state;
   },
 
-  loadDemoData() {
+  loadDemoData(applicationId: CandidateApplicationId = activeApplicationId) {
     clearTimers();
-    state = structuredClone(mockCandidateDetail);
+    activeApplicationId = applicationId;
+    state = createCandidateDetail(applicationId);
     hydrated = true;
     persist();
     emit();

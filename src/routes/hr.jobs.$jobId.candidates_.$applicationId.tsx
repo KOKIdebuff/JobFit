@@ -38,6 +38,7 @@ import { useCandidateDetailDemo } from "@/hooks/use-candidate-detail-demo";
 import {
   candidateDetailDemoService,
   DEMO_IDS,
+  isCandidateApplicationId,
   type CandidatePageState,
 } from "@/lib/candidate-detail-demo";
 
@@ -67,7 +68,7 @@ function CandidateDetailPage() {
   const { jobId, applicationId } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const state = useCandidateDetailDemo();
+  const state = useCandidateDetailDemo(applicationId);
   const [resumeOpen, setResumeOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [pauseOpen, setPauseOpen] = useState(false);
@@ -76,7 +77,7 @@ function CandidateDetailPage() {
   const listPath = () =>
     navigate({
       to: "/hr/jobs/$jobId/candidates",
-      params: { jobId: DEMO_IDS.job },
+      params: { jobId },
     });
 
   const planPath = () =>
@@ -89,16 +90,17 @@ function CandidateDetailPage() {
     if (!search.state && !search.fail) return;
     await navigate({
       to: "/hr/jobs/$jobId/candidates/$applicationId",
-      params: { jobId: DEMO_IDS.job, applicationId: DEMO_IDS.application },
+      params: { jobId, applicationId },
       search: {},
       replace: true,
     });
   };
 
   const loadDemoData = async () => {
-    candidateDetailDemoService.loadDemoData();
+    if (!isCandidateApplicationId(applicationId)) return;
+    candidateDetailDemoService.loadDemoData(applicationId);
     await clearDemoSearch();
-    toast.success("已载入演示数据");
+    toast.success("数据已重新加载");
   };
 
   const generate = async () => {
@@ -120,7 +122,7 @@ function CandidateDetailPage() {
     );
   }
 
-  const validIds = jobId === DEMO_IDS.job && applicationId === DEMO_IDS.application;
+  const validIds = jobId === DEMO_IDS.job && isCandidateApplicationId(applicationId);
   const simulatedState = search.state;
 
   if (!validIds || simulatedState === "not-found") {
@@ -183,7 +185,7 @@ function CandidateDetailPage() {
           <span className="text-muted-foreground">当前岗位：{state.job.title}</span>
           <span className="text-muted-foreground">候选人：{state.candidate.name}</span>
           <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
-            数据来源：演示数据
+            匹配规则：{state.match_result.ruleVersion}
           </span>
         </div>
       </section>
@@ -229,7 +231,7 @@ function CandidateDetailPage() {
             onRetry={() => candidateDetailDemoService.generateAssessmentPlan()}
             onFallback={() => {
               candidateDetailDemoService.usePresetAssessmentPlan();
-              toast.success("已使用预置验证方案");
+              toast.success("已使用系统验证方案");
             }}
             onNote={openNote}
             onPriority={() => {

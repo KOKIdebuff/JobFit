@@ -26,7 +26,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useCandidateDetailDemo } from "@/hooks/use-candidate-detail-demo";
-import { candidateDetailDemoService, DEMO_IDS } from "@/lib/candidate-detail-demo";
+import {
+  candidateDetailDemoService,
+  DEMO_IDS,
+  isCandidateApplicationId,
+} from "@/lib/candidate-detail-demo";
 
 export const Route = createFileRoute("/hr/jobs/$jobId/candidates_/$applicationId_/assessment-plan")(
   {
@@ -45,7 +49,7 @@ export const Route = createFileRoute("/hr/jobs/$jobId/candidates_/$applicationId
 
 function AssessmentPlanPage() {
   const { jobId, applicationId } = Route.useParams();
-  const state = useCandidateDetailDemo();
+  const state = useCandidateDetailDemo(applicationId);
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [agentOpen, setAgentOpen] = useState(false);
@@ -53,10 +57,10 @@ function AssessmentPlanPage() {
   const backToDetail = () =>
     navigate({
       to: "/hr/jobs/$jobId/candidates/$applicationId",
-      params: { jobId: DEMO_IDS.job, applicationId: DEMO_IDS.application },
+      params: { jobId, applicationId },
     });
 
-  if (jobId !== DEMO_IDS.job || applicationId !== DEMO_IDS.application) {
+  if (jobId !== DEMO_IDS.job || !isCandidateApplicationId(applicationId)) {
     return (
       <PageShell>
         <main className="mx-auto max-w-xl px-5 py-20 text-center sm:px-8">
@@ -253,7 +257,7 @@ function AssessmentPlanPage() {
                       to="/candidate/applications/$applicationId/trial"
                       params={{ applicationId: state.application.id }}
                     >
-                      继续演示 <ArrowRight />
+                      继续下一步 <ArrowRight />
                     </Link>
                   </Button>
                 )}
@@ -274,7 +278,7 @@ function AssessmentPlanPage() {
                 to="/candidate/applications/$applicationId/trial"
                 params={{ applicationId: state.application.id }}
               >
-                继续演示 <ArrowRight />
+                继续下一步 <ArrowRight />
               </Link>
             </Button>
           ) : (

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, CheckCircle2, MapPin, Briefcase } from "lucide-react";
 import { PageShell } from "@/components/site/PageShell";
 import { DemoNotice } from "@/components/site/DemoNotice";
+import { DEMO_IDS } from "@/lib/candidate-detail-demo";
 import { JOB_MATCHES } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/candidates")({
@@ -10,10 +11,10 @@ export const Route = createFileRoute("/candidates")({
       { title: "候选人排序 — HireLink AI" },
       {
         name: "description",
-        content: "基于已确认的岗位画像，使用预置数据演示候选人规则评分与排序。",
+        content: "基于已确认的岗位画像，展示候选人规则评分与排序。",
       },
       { property: "og:title", content: "候选人排序 — HireLink AI" },
-      { property: "og:description", content: "岗位画像确认后的候选人排序前端演示。" },
+      { property: "og:description", content: "岗位画像确认后的候选人评分与排序。" },
     ],
   }),
   component: CandidatesPage,
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/candidates")({
 
 const CANDIDATES = [
   {
+    applicationId: "application_ai_pm_li_001",
     name: "李同学",
     title: "AI 产品经理（校招）",
     score: 86,
@@ -29,6 +31,7 @@ const CANDIDATES = [
     note: "待验证：复杂需求拆解、AI 风险意识、MVP 范围控制",
   },
   {
+    applicationId: "application_ai_pm_wang_002",
     name: "王思远",
     title: "高级产品经理 · 5 年",
     score: 89,
@@ -37,6 +40,7 @@ const CANDIDATES = [
     note: "数据指标体系搭建经验丰富",
   },
   {
+    applicationId: "application_ai_pm_chen_003",
     name: "陈雨桐",
     title: "AI 产品 · 3 年",
     score: 85,
@@ -45,6 +49,7 @@ const CANDIDATES = [
     note: "技术理解力强，可独立分析",
   },
   {
+    applicationId: "application_ai_pm_zhao_004",
     name: "赵晗",
     title: "产品经理 · 3 年",
     score: 78,
@@ -67,7 +72,7 @@ function CandidatesPage() {
             <ArrowLeft className="h-4 w-4" /> 返回岗位画像
           </Link>
           <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600">
-            <CheckCircle2 className="h-4 w-4" /> 岗位画像已确认，预置排序已载入
+            <CheckCircle2 className="h-4 w-4" /> 岗位画像已确认，候选人排序已更新
           </div>
           <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">候选人排序 · AI 产品经理</h1>
           <p className="mt-3 max-w-2xl text-muted-foreground">
@@ -121,17 +126,14 @@ function CandidatesPage() {
               <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">
                 {c.note}
               </p>
-              {i === 0 && (
-                <div className="mt-4 flex justify-end">
-                  <Link
-                    to="/hr/applications/$applicationId"
-                    params={{ applicationId: "demo-001" }}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.02]"
-                  >
-                    查看候选人详情 <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-              )}
+              <div className="mt-4 flex justify-end">
+                <a
+                  href={`/hr/jobs/${DEMO_IDS.job}/candidates/${c.applicationId}?fail=false`}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.02]"
+                >
+                  查看候选人详情 <ArrowRight className="h-4 w-4" />
+                </a>
+              </div>
             </div>
           ))}
         </div>
