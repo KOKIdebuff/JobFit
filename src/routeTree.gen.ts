@@ -25,6 +25,7 @@ import { Route as HrJobsJobIdCandidatesRouteImport } from './routes/hr.jobs.$job
 import { Route as HrApplicationsApplicationIdReportRouteImport } from './routes/hr.applications.$applicationId_.report'
 import { Route as HrApplicationsApplicationIdAssessmentPlanRouteImport } from './routes/hr.applications.$applicationId_.assessment-plan'
 import { Route as CandidateApplicationsApplicationIdTrialRouteImport } from './routes/candidate.applications.$applicationId.trial'
+import { Route as CandidateApplicationsApplicationIdReportRouteImport } from './routes/candidate.applications.$applicationId.report'
 import { Route as HrJobsJobIdCandidatesApplicationIdRouteImport } from './routes/hr.jobs.$jobId.candidates_.$applicationId'
 import { Route as HrApplicationsApplicationIdTrialSetupRouteImport } from './routes/hr.applications.$applicationId_.trial.setup'
 import { Route as HrApplicationsApplicationIdTrialResultRouteImport } from './routes/hr.applications.$applicationId_.trial.result'
@@ -114,6 +115,12 @@ const CandidateApplicationsApplicationIdTrialRoute =
     path: '/candidate/applications/$applicationId/trial',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CandidateApplicationsApplicationIdReportRoute =
+  CandidateApplicationsApplicationIdReportRouteImport.update({
+    id: '/candidate/applications/$applicationId/report',
+    path: '/candidate/applications/$applicationId/report',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const HrJobsJobIdCandidatesApplicationIdRoute =
   HrJobsJobIdCandidatesApplicationIdRouteImport.update({
     id: '/jobs/$jobId/candidates_/$applicationId',
@@ -152,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/resume': typeof ResumeRoute
   '/hr/': typeof HrIndexRoute
   '/hr/applications/$applicationId': typeof HrApplicationsApplicationIdRoute
+  '/candidate/applications/$applicationId/report': typeof CandidateApplicationsApplicationIdReportRoute
   '/candidate/applications/$applicationId/trial': typeof CandidateApplicationsApplicationIdTrialRoute
   '/hr/applications/$applicationId/assessment-plan': typeof HrApplicationsApplicationIdAssessmentPlanRoute
   '/hr/applications/$applicationId/report': typeof HrApplicationsApplicationIdReportRoute
@@ -173,6 +181,7 @@ export interface FileRoutesByTo {
   '/resume': typeof ResumeRoute
   '/hr': typeof HrIndexRoute
   '/hr/applications/$applicationId': typeof HrApplicationsApplicationIdRoute
+  '/candidate/applications/$applicationId/report': typeof CandidateApplicationsApplicationIdReportRoute
   '/candidate/applications/$applicationId/trial': typeof CandidateApplicationsApplicationIdTrialRoute
   '/hr/applications/$applicationId/assessment-plan': typeof HrApplicationsApplicationIdAssessmentPlanRoute
   '/hr/applications/$applicationId/report': typeof HrApplicationsApplicationIdReportRoute
@@ -196,6 +205,7 @@ export interface FileRoutesById {
   '/resume': typeof ResumeRoute
   '/hr/': typeof HrIndexRoute
   '/hr/applications/$applicationId': typeof HrApplicationsApplicationIdRoute
+  '/candidate/applications/$applicationId/report': typeof CandidateApplicationsApplicationIdReportRoute
   '/candidate/applications/$applicationId/trial': typeof CandidateApplicationsApplicationIdTrialRoute
   '/hr/applications/$applicationId_/assessment-plan': typeof HrApplicationsApplicationIdAssessmentPlanRoute
   '/hr/applications/$applicationId_/report': typeof HrApplicationsApplicationIdReportRoute
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/resume'
     | '/hr/'
     | '/hr/applications/$applicationId'
+    | '/candidate/applications/$applicationId/report'
     | '/candidate/applications/$applicationId/trial'
     | '/hr/applications/$applicationId/assessment-plan'
     | '/hr/applications/$applicationId/report'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/resume'
     | '/hr'
     | '/hr/applications/$applicationId'
+    | '/candidate/applications/$applicationId/report'
     | '/candidate/applications/$applicationId/trial'
     | '/hr/applications/$applicationId/assessment-plan'
     | '/hr/applications/$applicationId/report'
@@ -263,6 +275,7 @@ export interface FileRouteTypes {
     | '/resume'
     | '/hr/'
     | '/hr/applications/$applicationId'
+    | '/candidate/applications/$applicationId/report'
     | '/candidate/applications/$applicationId/trial'
     | '/hr/applications/$applicationId_/assessment-plan'
     | '/hr/applications/$applicationId_/report'
@@ -284,6 +297,7 @@ export interface RootRouteChildren {
   MatchRoute: typeof MatchRoute
   NetworkRoute: typeof NetworkRoute
   ResumeRoute: typeof ResumeRoute
+  CandidateApplicationsApplicationIdReportRoute: typeof CandidateApplicationsApplicationIdReportRoute
   CandidateApplicationsApplicationIdTrialRoute: typeof CandidateApplicationsApplicationIdTrialRoute
 }
 
@@ -401,6 +415,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CandidateApplicationsApplicationIdTrialRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/candidate/applications/$applicationId/report': {
+      id: '/candidate/applications/$applicationId/report'
+      path: '/candidate/applications/$applicationId/report'
+      fullPath: '/candidate/applications/$applicationId/report'
+      preLoaderRoute: typeof CandidateApplicationsApplicationIdReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/hr/jobs/$jobId/candidates_/$applicationId': {
       id: '/hr/jobs/$jobId/candidates_/$applicationId'
       path: '/jobs/$jobId/candidates/$applicationId'
@@ -475,6 +496,8 @@ const rootRouteChildren: RootRouteChildren = {
   MatchRoute: MatchRoute,
   NetworkRoute: NetworkRoute,
   ResumeRoute: ResumeRoute,
+  CandidateApplicationsApplicationIdReportRoute:
+    CandidateApplicationsApplicationIdReportRoute,
   CandidateApplicationsApplicationIdTrialRoute:
     CandidateApplicationsApplicationIdTrialRoute,
 }

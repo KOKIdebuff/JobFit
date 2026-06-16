@@ -19,6 +19,7 @@ import { RadarChart } from "@/components/site/RadarChart";
 import { Button } from "@/components/ui/button";
 import { useTrialDemo } from "@/hooks/use-trial-demo";
 import { formatBytes, formatDemoDate, trialDemoService } from "@/lib/trial-demo";
+import { evaluationReportService } from "@/lib/evaluation-report/service";
 
 export const Route = createFileRoute("/hr/applications/$applicationId_/trial/result")({
   head: () => ({
@@ -50,6 +51,7 @@ function TrialResultPage() {
 
   const includeReport = () => {
     trialDemoService.includeInReport();
+    evaluationReportService.generate();
     toast.success("任务证据已纳入证据链报告");
     navigate({
       to: "/hr/applications/$applicationId/report",

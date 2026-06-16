@@ -617,6 +617,7 @@ export function HrActionSidebar({
   onRetry,
   onFallback,
   onNote,
+  onViewReport,
   onPriority,
   onFavorite,
   onPause,
@@ -628,6 +629,7 @@ export function HrActionSidebar({
   onRetry: () => void;
   onFallback: () => void;
   onNote: () => void;
+  onViewReport?: () => void;
   onPriority: () => void;
   onFavorite: () => void;
   onPause: () => void;
@@ -668,6 +670,15 @@ export function HrActionSidebar({
             >
               {ready ? <FileText /> : <Sparkles />}
               {ready ? "查看并确认验证方案" : "生成候选人验证方案"}
+            </Button>
+          )}
+          {onViewReport && (
+            <Button
+              variant="outline"
+              className="mt-2 w-full whitespace-normal rounded-full"
+              onClick={onViewReport}
+            >
+              <FileText /> 查看证据链报告
             </Button>
           )}
         </div>

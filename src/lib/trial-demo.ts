@@ -100,6 +100,9 @@ export const AI_RUN_STEPS = [
   "写入证据链报告",
 ] as const;
 
+const STORAGE_KEY = "hirelink:trial-demo:v1";
+const STORAGE_VERSION = 1;
+
 export const PRESET_TASK = {
   id: "trial-demo-001",
   title: "设计一套 AI 简历分析功能的 MVP 方案",
@@ -225,6 +228,7 @@ function createInitialState(): TrialDemoState {
 }
 
 let state = createInitialState();
+let hydrated = false;
 const listeners = new Set<() => void>();
 const timers = new Set<ReturnType<typeof setTimeout>>();
 
@@ -234,7 +238,37 @@ function emit() {
 
 function update(updater: (current: TrialDemoState) => TrialDemoState) {
   state = updater(state);
+  persist();
   emit();
+}
+
+function canUseStorage() {
+  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+function persist() {
+  if (!canUseStorage()) return;
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      version: STORAGE_VERSION,
+      state,
+    }),
+  );
+  window.dispatchEvent(new CustomEvent("hirelink:trial-demo-updated"));
+}
+
+function hydrate() {
+  if (hydrated || !canUseStorage()) return;
+  hydrated = true;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as { version: number; state: TrialDemoState };
+    if (parsed.version === STORAGE_VERSION) state = parsed.state;
+  } catch {
+    state = createInitialState();
+  }
 }
 
 function later(callback: () => void, delay: number) {
@@ -261,6 +295,7 @@ export const trialDemoStore = {
     return () => listeners.delete(listener);
   },
   getSnapshot() {
+    hydrate();
     return state;
   },
   getServerSnapshot() {
@@ -272,6 +307,10 @@ export const trialDemoService = {
   reset() {
     clearTimers();
     state = createInitialState();
+    if (canUseStorage()) window.localStorage.removeItem(STORAGE_KEY);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("hirelink:trial-demo-updated"));
+    }
     emit();
   },
 

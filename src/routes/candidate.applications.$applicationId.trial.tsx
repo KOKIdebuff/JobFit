@@ -364,6 +364,18 @@ function CandidateTrialPage() {
               </Link>
             </Button>
             <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() =>
+                navigate({
+                  to: "/candidate/applications/$applicationId/report",
+                  params: { applicationId: state.application.id },
+                })
+              }
+            >
+              查看能力反馈
+            </Button>
+            <Button
               className="rounded-full"
               disabled={!state.trial_evaluation}
               onClick={() =>

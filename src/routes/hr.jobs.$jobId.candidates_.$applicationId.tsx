@@ -233,6 +233,12 @@ function CandidateDetailPage() {
               candidateDetailDemoService.usePresetAssessmentPlan();
               toast.success("已使用系统验证方案");
             }}
+            onViewReport={() =>
+              navigate({
+                to: "/hr/applications/$applicationId/report",
+                params: { applicationId: state.application.id },
+              })
+            }
             onNote={openNote}
             onPriority={() => {
               candidateDetailDemoService.togglePriority();
