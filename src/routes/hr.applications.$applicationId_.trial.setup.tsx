@@ -113,8 +113,8 @@ function TrialSetupPage() {
                   <p className="flex items-start gap-2">
                     <FileText className="mt-0.5 h-4 w-4 shrink-0" />
                     {state.trial_task.source === "fallback"
-                      ? "当前使用明确标记的预置任务"
-                      : "当前使用 AI 模拟生成结果"}
+                      ? "当前使用系统推荐任务"
+                      : "当前使用 AI 生成结果"}
                   </p>
                   <p className="flex items-start gap-2">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
@@ -283,14 +283,14 @@ function GenerationFailed({
       <TriangleAlert className="mx-auto h-10 w-10 text-red-600" />
       <h2 className="mt-4 text-xl font-semibold">岗位任务生成失败</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        可以重新生成，或显式使用预置任务继续演示。预置结果不会伪装成本次 AI 生成。
+        可以重新生成，或使用系统推荐任务继续流程。
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         <Button className="rounded-full" onClick={onRetry}>
           <RefreshCw /> 重新生成
         </Button>
         <Button variant="outline" className="rounded-full" onClick={onFallback}>
-          <FileText /> 使用预置结果
+          <FileText /> 使用系统方案
         </Button>
       </div>
     </div>

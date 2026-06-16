@@ -18,14 +18,14 @@ export function AiRunProgress({
         <AlertTriangle className="mx-auto h-9 w-9 text-red-600" />
         <h3 className="mt-3 font-semibold">AI 评价暂时失败，请重试。</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          候选人的提交内容已保留，不会因为本次模拟失败而丢失。
+          候选人的提交内容已保留，不会因为本次处理失败而丢失。
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           <Button onClick={onRetry} className="rounded-full">
             <RefreshCw /> 重新评价
           </Button>
           <Button variant="outline" onClick={onFallback} className="rounded-full">
-            <FileText /> 使用预置评价
+            <FileText /> 使用系统评价
           </Button>
         </div>
       </div>

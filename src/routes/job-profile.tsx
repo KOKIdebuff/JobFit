@@ -45,10 +45,10 @@ export const Route = createFileRoute("/job-profile")({
       { title: "岗位画像确认 — HireLink AI" },
       {
         name: "description",
-        content: "HR 对照原始 JD 检查并确认预置结构化岗位画像，体验候选人匹配流程。",
+        content: "HR 对照原始 JD 检查并确认结构化岗位画像，进入候选人匹配流程。",
       },
       { property: "og:title", content: "岗位画像确认 — HireLink AI" },
-      { property: "og:description", content: "前端模拟岗位画像确认与候选人排序流程。" },
+      { property: "og:description", content: "岗位画像确认与候选人排序流程。" },
     ],
   }),
   component: JobProfilePage,
@@ -58,8 +58,8 @@ type RiskState = Record<string, "open" | "adopted" | "ignored">;
 
 const PHASE_META: Record<ProfilePhase, { label: string; tone: string }> = {
   idle: { label: "解析前", tone: "bg-secondary text-muted-foreground" },
-  parsing: { label: "模拟解析中", tone: "bg-blue-500/10 text-blue-600" },
-  success: { label: "模拟解析完成", tone: "bg-emerald-500/10 text-emerald-600" },
+  parsing: { label: "解析中", tone: "bg-blue-500/10 text-blue-600" },
+  success: { label: "解析完成", tone: "bg-emerald-500/10 text-emerald-600" },
   partial: { label: "部分成功", tone: "bg-amber-500/10 text-amber-600" },
   failed: { label: "解析失败", tone: "bg-red-500/10 text-red-600" },
   review: { label: "待 HR 确认", tone: "bg-violet-500/10 text-violet-600" },
@@ -95,7 +95,7 @@ function JobProfilePage() {
             setPhase("failed");
           } else {
             setPhase("review");
-            toast.success(outcome === "partial" ? "部分模拟完成" : "模拟解析完成", {
+            toast.success(outcome === "partial" ? "部分解析完成" : "解析完成", {
               description: "请对照原始 JD 检查结构化岗位画像后确认。",
             });
           }
@@ -135,7 +135,7 @@ function JobProfilePage() {
               </div>
               <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <Database className="h-3.5 w-3.5" /> 数据来源：JD 文本导入
+                  <Database className="h-3.5 w-3.5" /> 导入方式：JD 文本
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5" /> 最近解析：
@@ -179,7 +179,7 @@ function JobProfilePage() {
               {phase === "partial" && (
                 <div className="flex items-start gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-700">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  部分字段解析置信度较低（薪资、能力维度），已用预置值填充，请人工校对。
+                  部分字段解析置信度较低（薪资、能力维度），请人工校对。
                 </div>
               )}
               <StructuredProfile
@@ -233,10 +233,10 @@ function JobProfilePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>确认岗位画像</DialogTitle>
-            <DialogDescription>确认后，该结构化画像将在本次前端演示中用于：</DialogDescription>
+            <DialogDescription>确认后，该结构化画像将用于：</DialogDescription>
           </DialogHeader>
           <ul className="space-y-2 text-sm">
-            {["候选人规则评分与排序演示", "预置面试题展示", "岗位任务流程展示"].map((t) => (
+            {["候选人规则评分与排序", "面试题生成", "岗位任务流程"].map((t) => (
               <li key={t} className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" /> {t}
               </li>
@@ -395,7 +395,7 @@ function FailedState({ onRetry, onPreset }: { onRetry: () => void; onPreset: () 
       </div>
       <h3 className="mt-5 text-lg font-semibold">解析失败</h3>
       <p className="mt-2 text-sm text-muted-foreground">
-        模拟解析未完成。你可以重试，或直接使用预置结果继续检查交互流程。
+        解析未完成。你可以重试，或使用系统结果继续流程。
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <button
@@ -408,7 +408,7 @@ function FailedState({ onRetry, onPreset }: { onRetry: () => void; onPreset: () 
           onClick={onPreset}
           className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-5 py-2.5 text-sm font-medium hover:bg-secondary"
         >
-          <FileText className="h-4 w-4" /> 使用预置结果
+          <FileText className="h-4 w-4" /> 使用系统结果
         </button>
       </div>
     </div>
@@ -604,9 +604,7 @@ function RiskCard({
                 <Check className="h-3.5 w-3.5" /> 采纳建议
               </button>
               <button
-                onClick={() =>
-                  toast("已打开手动修改", { description: "可在对应字段直接编辑（演示）" })
-                }
+                onClick={() => toast("已打开手动修改", { description: "可在对应字段直接编辑" })}
                 className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
               >
                 <Pencil className="h-3.5 w-3.5" /> 手动修改

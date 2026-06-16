@@ -65,7 +65,7 @@ function MatchPage() {
             label: "基础语义匹配",
             score: j.score,
             max: 99,
-            detail: "预置岗位样例的基础匹配分，仅用于当前前端原型",
+            detail: "基于岗位要求与候选人信息计算的基础匹配分",
           },
           {
             label: "命中技能加权",

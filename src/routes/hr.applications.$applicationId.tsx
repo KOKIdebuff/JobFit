@@ -21,7 +21,7 @@ export const Route = createFileRoute("/hr/applications/$applicationId")({
       { title: "候选人详情 — HireLink AI" },
       {
         name: "description",
-        content: "查看候选人与岗位匹配上下文，并进入岗位能力试炼演示流程。",
+        content: "查看候选人与岗位匹配上下文，并进入岗位能力验证流程。",
       },
     ],
   }),

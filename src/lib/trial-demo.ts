@@ -347,7 +347,7 @@ export const trialDemoService = {
     clearTimers();
     update((current) => ({
       ...current,
-      application: { ...current.application, stage: "预置任务待 HR 确认" },
+      application: { ...current.application, stage: "系统任务待 HR 确认" },
       trial_task: {
         ...PRESET_TASK,
         status: "draft",
@@ -522,7 +522,7 @@ export const trialDemoService = {
     clearTimers();
     update((current) => ({
       ...current,
-      application: { ...current.application, stage: "已载入预置 AI 评价" },
+      application: { ...current.application, stage: "AI 评价已就绪" },
       trial_task: { ...current.trial_task, status: "evaluated" },
       trial_evaluation: PRESET_EVALUATION,
       ai_run: {

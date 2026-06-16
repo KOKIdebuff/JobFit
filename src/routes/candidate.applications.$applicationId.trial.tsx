@@ -194,7 +194,7 @@ function CandidateTrialPage() {
                       className="rounded-full"
                       onClick={() => trialDemoService.fillPresetSubmission()}
                     >
-                      填入演示提交
+                      自动填充内容
                     </Button>
                   </div>
                   <label className="mt-5 block">
@@ -214,7 +214,7 @@ function CandidateTrialPage() {
                           : "text-muted-foreground"
                       }
                     >
-                      建议 500—800 字，不作为演示提交的强制门槛
+                      建议 500—800 字，提交前请检查内容完整性
                     </span>
                     <span className="tabular-nums text-muted-foreground">{characterCount} 字</span>
                   </div>
@@ -256,7 +256,7 @@ function CandidateTrialPage() {
                       className="mt-2 flex w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-background px-4 py-6 text-sm text-muted-foreground transition-colors hover:bg-secondary/40"
                     >
                       <Upload className="h-5 w-5" />
-                      模拟上传 PDF / DOCX / TXT / PNG / JPG
+                      支持 PDF / DOCX / TXT / PNG / JPG
                       <span className="text-xs">单个附件不超过 10MB</span>
                     </button>
                     {fileError && <p className="mt-2 text-xs text-red-600">{fileError}</p>}
@@ -328,7 +328,7 @@ function CandidateTrialPage() {
                 <section className="rounded-3xl border border-red-500/30 bg-red-500/5 p-6">
                   <h2 className="font-semibold text-red-700">任务已过期</h2>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    截止时间后不能首次提交或重新提交，已保存内容仅用于当前页面演示。
+                    截止时间后不能首次提交或重新提交，已保存内容仍可查看。
                   </p>
                 </section>
               )}
@@ -422,10 +422,10 @@ function WaitingState({ onPrepare }: { onPrepare: () => void }) {
       <ShieldCheck className="mx-auto h-10 w-10 text-muted-foreground" />
       <h2 className="mt-4 text-xl font-semibold">任务尚未向候选人发布</h2>
       <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-        候选人只能查看 HR 已确认发布的任务。你可以返回 HR 视图完成发布，或载入演示发布状态。
+        候选人只能查看 HR 已确认发布的任务。你可以返回 HR 视图完成发布，或直接载入已发布任务。
       </p>
       <Button variant="outline" className="mt-6 rounded-full" onClick={onPrepare}>
-        载入已发布演示任务
+        载入已发布任务
       </Button>
     </div>
   );

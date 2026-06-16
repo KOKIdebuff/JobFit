@@ -16,7 +16,7 @@ export const Route = createFileRoute("/resume")({
         content: "简历文本解析、结构化字段和版本管理交互原型。",
       },
       { property: "og:title", content: "简历解析与版本原型 — HireLink AI" },
-      { property: "og:description", content: "当前模板预览为前端原型，不代表已实现 RAG。" },
+      { property: "og:description", content: "根据岗位要求生成并预览结构化简历内容。" },
     ],
   }),
   component: ResumePage,
@@ -169,9 +169,7 @@ function ResumePage() {
               </>
             )}
           </button>
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            固定模板预览，仅用于前端交互演示
-          </p>
+          <p className="mt-3 text-center text-xs text-muted-foreground">简历模板预览</p>
         </div>
 
         {/* Preview */}

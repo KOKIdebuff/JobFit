@@ -31,7 +31,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-10 border-t border-border/60 pt-6 text-xs text-muted-foreground">
-          © 2026 HireLink AI · AI 人才服务智能体平台 · 产品原型演示
+          © 2026 HireLink AI · AI 人才服务智能体平台
         </div>
       </div>
     </footer>

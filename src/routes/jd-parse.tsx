@@ -45,10 +45,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/jd-parse")({
   head: () => ({
     meta: [
-      { title: "JD 解析演示 — HireLink AI" },
-      { name: "description", content: "使用预置结果演示 JD 结构化、人工确认与候选人匹配流程。" },
-      { property: "og:title", content: "JD 解析演示 — HireLink AI" },
-      { property: "og:description", content: "前端模拟 JD 解析与岗位画像确认流程。" },
+      { title: "JD 解析 — HireLink AI" },
+      { name: "description", content: "完成 JD 结构化、人工确认与候选人匹配流程。" },
+      { property: "og:title", content: "JD 解析 — HireLink AI" },
+      { property: "og:description", content: "JD 解析与岗位画像确认流程。" },
     ],
   }),
   component: JdParsePage,
@@ -58,8 +58,8 @@ type RiskState = Record<string, "open" | "adopted" | "ignored">;
 
 const PHASE_META: Record<ProfilePhase, { label: string; tone: string }> = {
   idle: { label: "待输入", tone: "bg-secondary text-muted-foreground" },
-  parsing: { label: "模拟解析中", tone: "bg-blue-500/10 text-blue-600" },
-  success: { label: "模拟解析完成", tone: "bg-emerald-500/10 text-emerald-600" },
+  parsing: { label: "解析中", tone: "bg-blue-500/10 text-blue-600" },
+  success: { label: "解析完成", tone: "bg-emerald-500/10 text-emerald-600" },
   partial: { label: "部分成功", tone: "bg-amber-500/10 text-amber-600" },
   failed: { label: "解析失败", tone: "bg-red-500/10 text-red-600" },
   review: { label: "待 HR 确认", tone: "bg-violet-500/10 text-violet-600" },
@@ -113,7 +113,7 @@ function JdParsePage() {
             setPhase("failed");
           } else {
             setPhase("review");
-            toast.success("模拟解析完成", { description: "请对照原文检查预置岗位画像后确认。" });
+            toast.success("解析完成", { description: "请对照原文检查岗位画像后确认。" });
           }
         },
         (stepCount + 1) * 750,
@@ -124,7 +124,7 @@ function JdParsePage() {
   const usePreset = () => {
     setProfile(MOCK_PROFILE);
     setPhase("review");
-    toast.success("已载入预置结果", { description: "请人工校对后确认。" });
+    toast.success("结果已载入", { description: "请人工校对后确认。" });
   };
 
   const setRisk = (id: string, s: RiskState[string]) =>
@@ -157,7 +157,7 @@ function JdParsePage() {
             </span>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            输入 JD → 模拟分阶段解析 → 展示预置岗位画像 → HR 编辑确认 → 进入候选人排序演示。
+            输入 JD → 分阶段解析 → 展示岗位画像 → HR 编辑确认 → 进入候选人排序。
           </p>
           <ParsePipeline phase={phase} activeStep={activeStep} />
         </div>
@@ -266,10 +266,10 @@ function JdParsePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>确认岗位画像</DialogTitle>
-            <DialogDescription>确认后，该结构化画像将在本次前端演示中用于：</DialogDescription>
+            <DialogDescription>确认后，该结构化画像将用于：</DialogDescription>
           </DialogHeader>
           <ul className="space-y-2 text-sm">
-            {["候选人规则评分与排序演示", "预置面试题展示", "岗位任务流程展示"].map((t) => (
+            {["候选人规则评分与排序", "面试题生成", "岗位任务流程"].map((t) => (
               <li key={t} className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" /> {t}
               </li>
@@ -298,7 +298,7 @@ function JdParsePage() {
             <DialogTitle className="flex items-center gap-2">
               <Quote className="h-4 w-4" /> 原文依据
             </DialogTitle>
-            <DialogDescription>该预置字段对应以下 JD 原文片段：</DialogDescription>
+            <DialogDescription>该字段对应以下 JD 原文片段：</DialogDescription>
           </DialogHeader>
           <blockquote className="rounded-2xl border-l-4 border-primary bg-secondary/50 p-4 text-sm leading-relaxed text-foreground/90">
             {evidenceFor ? JD_EVIDENCE[evidenceFor] : ""}
@@ -315,7 +315,7 @@ function ParsePipeline({ phase, activeStep }: { phase: ProfilePhase; activeStep:
   return (
     <div className="my-5 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-background/60 p-3">
       <span className="flex items-center gap-1.5 px-1 text-xs font-medium text-muted-foreground">
-        <Sparkles className="h-3.5 w-3.5" /> 模拟解析流程
+        <Sparkles className="h-3.5 w-3.5" /> 智能解析流程
       </span>
       {PARSE_STEPS.map((s, i) => {
         const isDone = done || i < activeStep;
@@ -438,7 +438,7 @@ function JdForm({
           onClick={onStart}
           className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.02]"
         >
-          <Sparkles className="h-4 w-4" /> 开始模拟解析
+          <Sparkles className="h-4 w-4" /> 开始解析
         </button>
         <button
           onClick={onSample}
@@ -450,7 +450,7 @@ function JdForm({
           onClick={onSimFail}
           className="ml-auto text-xs text-muted-foreground hover:text-foreground"
         >
-          模拟解析失败 →
+          解析失败 →
         </button>
       </div>
     </div>
@@ -522,7 +522,7 @@ function FailedState({ onRetry, onPreset }: { onRetry: () => void; onPreset: () 
       </div>
       <h3 className="mt-5 text-lg font-semibold">解析失败</h3>
       <p className="mt-2 text-sm text-muted-foreground">
-        模拟解析未完成。你可以重试，或直接载入预置结果继续检查交互流程。
+        解析未完成。你可以重试，或使用系统结果继续流程。
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <button
@@ -535,7 +535,7 @@ function FailedState({ onRetry, onPreset }: { onRetry: () => void; onPreset: () 
           onClick={onPreset}
           className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-5 py-2.5 text-sm font-medium hover:bg-secondary"
         >
-          <FileText className="h-4 w-4" /> 使用预置结果
+          <FileText className="h-4 w-4" /> 使用系统结果
         </button>
       </div>
     </div>

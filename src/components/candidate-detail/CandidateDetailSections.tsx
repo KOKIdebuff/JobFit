@@ -91,15 +91,15 @@ export function CandidateStatePanel({
     },
     "profile-empty": {
       title: "缺少职业画像或匹配结果",
-      description: "当前申请缺少可用于解释匹配和生成验证方案的演示数据。",
-      action: "载入演示数据",
+      description: "当前申请缺少可用于解释匹配和生成验证方案的职业画像数据。",
+      action: "重新加载数据",
       secondary: "查看原始简历",
       tone: "warning",
     },
     "match-empty": {
       title: "暂无匹配结果",
       description: "岗位画像和候选人画像已保留，但尚未产生可解释匹配结果。",
-      action: "载入演示数据",
+      action: "重新加载数据",
       tone: "neutral",
     },
     "match-failed": {
@@ -110,8 +110,8 @@ export function CandidateStatePanel({
     },
     "match-stale": {
       title: "当前匹配结果已过期",
-      description: "岗位画像或简历版本发生变化，建议重新载入本轮演示数据。",
-      action: "载入演示数据",
+      description: "岗位画像或简历版本发生变化，建议重新计算匹配结果。",
+      action: "重新计算",
       tone: "warning",
     },
   };
@@ -210,10 +210,8 @@ export function CandidateIdentitySidebar({
       </section>
 
       <section className="rounded-2xl border border-border bg-secondary/30 p-4 text-xs leading-relaxed text-muted-foreground">
-        <div className="font-medium text-foreground">演示数据</div>
-        <p className="mt-1">
-          本页使用固定 Mock 数据。分数由规则计算，AI 只负责解释和生成验证内容。
-        </p>
+        <div className="font-medium text-foreground">评分说明</div>
+        <p className="mt-1">分数由规则计算，AI 负责解释匹配依据并生成验证内容。</p>
       </section>
     </aside>
   );
@@ -467,7 +465,7 @@ export function MatchExplanation({ state }: { state: CandidateDetailDemoState })
           <Sparkles className="h-4 w-4 text-violet-600" />
           {state.match_result.aiNotice}
         </span>
-        <span>数据来源：{state.match_result.sources.join("、")}</span>
+        <span>匹配依据：{state.match_result.sources.join("、")}</span>
       </div>
     </section>
   );
@@ -559,7 +557,7 @@ export function AssessmentGenerationProgress({
             <RefreshCw /> 重新生成
           </Button>
           <Button variant="outline" className="rounded-full" onClick={onFallback}>
-            <FileText /> 使用预置验证方案
+            <FileText /> 使用系统验证方案
           </Button>
           {onBack && (
             <Button variant="ghost" className="rounded-full" onClick={onBack}>
@@ -782,7 +780,7 @@ export function AgentRunDetails({ state }: { state: CandidateDetailDemoState }) 
         </div>
         <p className="mt-2 text-muted-foreground">
           {state.ai_run.status === "fallback"
-            ? "已使用预置验证方案"
+            ? "已使用系统验证方案"
             : state.ai_run.status === "completed"
               ? "验证方案生成完成，等待 HR 确认"
               : state.ai_run.status === "failed"

@@ -256,7 +256,7 @@ function EmptyResult({ onPrepare }: { onPrepare: () => void }) {
         完成候选人提交后，这里将展示交付物、五维评分和可追溯证据。
       </p>
       <Button variant="outline" className="mt-6 rounded-full" onClick={onPrepare}>
-        载入已评价演示结果
+        载入评价结果
       </Button>
     </div>
   );
