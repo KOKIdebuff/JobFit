@@ -245,6 +245,82 @@ flowchart TD
 - 隔离要求：输入输出摘要必须移除姓名、电话、邮箱等直接身份信息。面板接口仍需校验用户角色和业务资源归属。
 - 故障边界：面板接口失败、记录缺失或页面渲染异常只影响流程展示，不得中断或回滚主业务流程。
 
+#### 8.2.10 真人面试预约 P1 概念架构
+
+本节只定义未来边界、职责、概念关系和一致性要求，不修改 P0 公共契约、现有数据库实体或 Runtime，不定义 URL、OpenAPI、数据库表或迁移。进入接口、数据和页面设计前，PRD 中已收敛的 A/B 级规则必须全部冻结。
+
+模块边界：
+
+- 首期在模块化单体中使用 `human_interviews` 逻辑模块，统一承载 Interview Booking、Interview Invitation、Availability Management、Human Interview Session 和真人面试报告编排，避免在规模和规则尚未稳定时拆成多个服务。
+- Notification 作为跨模块能力，接收预约确认、待补全、改期、取消、会议/地点/联系方式变更、完成/未到场、报告发布和面试前提醒事件；通知发送失败只记录并允许重试，不回滚预约业务状态。
+- Meeting Integration 只保留适配边界。P1 首期不自动创建第三方会议，由岗位创建 HR 或主面试官预先维护会议链接，预约成功后系统发送已维护链接。
+- Location Management 采用企业/岗位级地点模板 + 到场说明，不接地图服务；缺会议链接或线下精确地址时不得开放对应时间段。
+- `Interviewer` 首期表示关联现有 HR 或企业授权账号的主面试官能力档案，不新增公开注册角色，不引入企业管理员。
+- Human Interview Report 与 `evaluation_reports` 保持独立。AI 证据链报告仅保留真人面试报告引用，不直接合并真人内容，也不反向更新 AI 匹配、推荐或能力画像。
+
+C 级未来边界：
+
+- Meeting Integration 未来保留供应商适配层，不提前绑定具体会议供应商；自动创建失败、重试、幂等和通知策略留到实现前设计。
+- Calendar Export 作为未来轻量边界，优先支持 `.ics` 最小信息导出；`.ics` 不作为排班事实源，不读取外部忙闲，默认只暴露时间、标题和平台入口，敏感详情经登录查看。
+- Location Management 未来仍以企业/岗位地点模板和到场说明为主；地图、路线和签到不纳入当前架构假设。
+- Scheduling Extension 可在 `AvailabilitySlot` 上层增加周期性规则模板、例外日和批量关闭；候补、容量、多轮、多面试官不复用 P1 单预约状态机，未来独立建模。
+- Interviewer Recommendation 未来只做规则推荐，不自动分配；岗位创建 HR 仍是最终确认主体。
+- Recording Boundary 作为企业可配置扩展能力，必须有求职者同意、30 天默认短期留存、访问审计和删除策略；不扩大平台对录制内容真实性或企业使用目的的责任。
+- Data Lifecycle 需要区分当前申请内长期保留和授权进入人才库；未授权数据不得跨岗位、跨企业或人才运营复用，删除请求、授权撤回和审计保留需独立处理。
+- Export & Audit 未来支持真人报告 PDF 与 CSV/Excel 导出，默认范围为已发布报告和预约摘要；下载和敏感查看写入审计，普通 HR 和面试官不直接查看审计日志。
+
+核心概念对象：
+
+| 概念对象 | 职责与关键关系 | 必要字段方向 |
+|---|---|---|
+| `InterviewInvitation` | 岗位创建 HR 为具体岗位申请生成的预约资格和受控入口，绑定候选人、申请、主面试官和面试类型 | application、candidate、created_by_hr、primary_interviewer、interview_type、token reference、expires_at、revoked_at、status |
+| `InterviewBooking` | 一次企业真人面试预约，关联邀请、岗位申请、求职者、主面试官、类型、当前状态和可能的改期前后记录 | invitation、application、candidate、primary_interviewer、interview_type、scheduled interval、duration、status、replacement relation、created/updated time |
+| `AvailabilitySlot` | 主面试官开放的一次性可预约时间段，采用 30 分钟粒度、默认 60 分钟面试和 15 分钟后置缓冲，被有效预约占用或释放 | interviewer、start/end、timezone、availability status、capacity=1、buffer policy |
+| `Interviewer` | 企业授权主面试官档案，关联现有账号、企业授权范围和工作联系方式 | user、organization、display information、work contact、authorization status |
+| `HumanInterviewSession` | 实际真人面试场次及履约结果；名称用于区分现有 AI `interview_sessions` | booking、actual start/end、completion/candidate_no_show/interviewer_no_show outcome |
+| `MeetingInformation` | 人工维护的线上会议加入信息及可见范围 | provider/manual link reference、join information、visibility status、last_editor |
+| `InterviewLocationTemplate` | 企业/岗位级线下面试地点模板和到场说明 | organization、job optional、address summary、precise address、arrival instructions、active status |
+| `BookingParticipant` | 预约参与者及其角色、通知和可见范围；P1 首期为 1 名候选人 + 1 名主面试官 | booking、user/contact reference、participant role、visibility |
+| `BookingStatusHistory` | 记录每次状态变化的前后状态、触发者、时间和原因 | booking、from/to status、actor、reason、occurred_at |
+| `HumanInterviewReport` | 真人面试后的轻量结构化独立报告，支持企业内部视图、求职者摘要视图和 AI 报告引用 | session、author_interviewer、reviewer_hr、status、conclusion、ability assessment、observations、risks/followups、candidate summary、internal notes |
+| `BookingAuditRecord` | 记录链接生成/撤回、档期变更、预约状态变化、敏感信息查看和报告发布 | actor、action、resource、resource_id、occurred_at、reason/context |
+
+状态流转草案：
+
+- 邀请链接由岗位创建 HR 在上游人岗匹配、AI 面试、岗位能力试炼和已确认 AI 证据链报告全部完成后生成；链接绑定具体申请、候选人、主面试官和线上/线下面试类型，3 天有效且不得超过可预约窗口。
+- 链接必须由对应候选人登录后使用；未登录先登录，账号不匹配拒绝。撤回链接只使未预约入口失效，已创建预约必须走预约取消或改期状态机。
+- 预约主路径为 `draft -> confirmed`。候选人提交后立即确认并锁定时间段，系统发送站内通知和已维护的会议或地点邀请。
+- `pending_confirmation` 仅用于预约后会议链接、地点模板、联系方式等关键履约信息失效或撤回；该状态继续占用时间段，6 小时内未补齐则系统取消预约并释放档期。
+- `confirmed` 可以进入 `completed`、`candidate_no_show`、`interviewer_no_show`、`cancelled` 或 `rescheduled`。
+- 改期必须将旧预约原子地标记为 `rescheduled`，释放或转移旧时间段，并创建关联的新预约；旧预约不得回退为可编辑状态。
+- `cancelled`、`rescheduled`、`completed`、`candidate_no_show`、`interviewer_no_show` 和因待补全超时产生的终态不得任意回退。
+- `expired` 只用于草稿、过期链接或待补全超时，不用于已确认预约的面试结果判断。
+- 主面试官或岗位创建 HR 手动标记完成、候选人未到场或面试官未到场；系统不得仅按时间自动推断履约结果。
+- 岗位申请轻量阶段与预约联动为 `interview_invited -> interview_scheduled -> interview_completed / candidate_no_show / interviewer_no_show`，不扩展为完整 ATS 状态机，不自动作出录用或淘汰决定。
+
+未来系统交互职责：生成/撤回绑定申请预约链接、校验预约链接和登录候选人、查询指定主面试官可预约日期、查询指定日期时间段、创建预约并锁定时间段、查询我的预约、取消预约、修改预约时间、管理一次性可用时间、维护人工会议链接、维护线下地点模板、获取会议或地点信息、完成面试并提交真人面试报告、HR 确认发布报告、在 AI 证据链报告中展示真人报告引用。本阶段不定义 URL、请求响应结构或 OpenAPI。
+
+一致性与冲突约束：
+
+- 同一求职者和同一岗位申请首期只能存在一个有效预约；同一求职者和同一主面试官在有效预约时间内都不能重叠，线上线下使用同一冲突规则。
+- 创建预约时必须完成冲突校验和时间段锁定；重复提交、取消、改期和服务重试必须具备幂等语义，不得生成重复预约或重复释放名额。
+- 可预约窗口为提前 14 天开放，面试开始前 24 小时停止预约；时间段粒度为 30 分钟，默认面试 60 分钟并在面试后预留 15 分钟缓冲。
+- 求职者最晚可在面试开始前 24 小时取消；企业 24 小时内取消必须填写原因并标记企业临时取消。求职者和企业各最多主动改期 1 次。
+- 企业取消、企业改期、双方未到场必须填写原因；求职者按规则提前取消原因选填。
+- 上游岗位画像、报告或试炼结果更新后，未预约资格失效；已确认预约不自动取消，但标记为需要 HR 复核。
+- 应用内部继续使用带时区 UTC 时间，接口输出遵循现有时间格式；日历和通知按企业/岗位所在地时区展示并明确标注。
+- 会议链接、地点模板或联系方式在预约后失效时进入 `pending_confirmation`；通知失败不改变预约状态，只记录失败、允许重试，并可在预约详情提示关键通知可能未送达。
+
+隐私、权限与审计：
+
+- 求职者只能使用绑定本人申请且未过期的预约链接，只能查看自己的预约和求职者可见报告摘要。
+- 岗位创建 HR 可以生成/撤回预约链接、授予/撤回预约资格、确认发布真人报告，并在授权范围内取消或改期。
+- 主面试官只能查看被授权参与的预约、完整 HR 版 AI 证据链报告、会议/地点和候选人预约联系方式；访问完整 HR 报告必须审计。
+- P1 首期不引入企业管理员，也不提供平台管理员介入修改或取消预约的能力；平台只保留审计和必要运维排障边界。
+- 会议链接和线下精确地址只在预约 `confirmed` 后向必要参与者展示；候选人在预约时确认本次联系方式，企业侧展示工作联系方式，不默认暴露简历解析出的联系方式。
+- 链接生成/撤回、档期变更、预约创建/取消/改期、敏感信息查看、会议/地点/联系方式变更、状态变更和报告发布全部需要 `BookingAuditRecord`。
+- 个人信息遵循最小化展示原则；会议链接不得公开暴露，外部适配日志不得保存完整链接或联系信息。
+
 ### 8.3 数据模块
 
 | 实体 | 作用 |
@@ -512,6 +588,7 @@ flowchart TD
 - 面试会话与记录可扩展短期音视频保存和回放；虚拟面试官保持独立呈现能力。
 - 智能面试提问可扩展动态追问，复用题目安全、来源引用和会话状态。
 - 求职者成长中心可扩展学习主题、回答复盘、练习任务和资源路径，复用已确认报告和能力缺口。
+- P1 可增加真人面试预约，在模块化单体内先合并预约链接、预约记录、可用时间和真人场次职责，并为站内通知、人工会议链接、地点模板和真人面试报告保留适配边界；不得与现有 AI 面试会话实体混用。
 - 企业人才运营可扩展授权候选人资产、检索和聚合洞察；AI 内推网络在其外部负责经授权关系连接与内推路径推荐，两者保持独立职责。
 - 后续可扩展运维脚本、审计日志、数据导出和企业级权限。
 
