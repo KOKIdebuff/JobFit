@@ -1,143 +1,58 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, CheckCircle2, MapPin, Briefcase } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/site/PageShell";
-import { DemoNotice } from "@/components/site/DemoNotice";
+import { Button } from "@/components/ui/button";
+import { CANDIDATE_APPLICATION_IDS, DEMO_IDS } from "@/lib/candidate-detail-demo";
 
 export const Route = createFileRoute("/hr/jobs/$jobId/candidates")({
-  head: () => ({
-    meta: [
-      { title: "候选人排序 — HireLink AI" },
-      {
-        name: "description",
-        content: "基于已确认的岗位画像，展示候选人规则评分与排序。",
-      },
-      { property: "og:title", content: "候选人排序 — HireLink AI" },
-      { property: "og:description", content: "岗位画像确认后的候选人评分与排序。" },
-    ],
-  }),
-  component: HrCandidatesPage,
+  component: JobCandidatesPage,
 });
 
-const CANDIDATES = [
-  {
-    applicationId: "application_ai_pm_li_001",
-    name: "李同学",
-    title: "AI 产品经理（校招）",
-    score: 86,
-    tags: ["LLM 产品经验", "需求分析", "数据分析"],
-    location: "北京",
-    note: "待验证：复杂需求拆解、AI 风险意识、MVP 范围控制",
-  },
-  {
-    applicationId: "application_ai_pm_wang_002",
-    name: "王思远",
-    title: "高级产品经理 · 5 年",
-    score: 89,
-    tags: ["数据驱动", "Agent", "跨团队"],
-    location: "北京",
-    note: "数据指标体系搭建经验丰富",
-  },
-  {
-    applicationId: "application_ai_pm_chen_003",
-    name: "陈雨桐",
-    title: "AI 产品 · 3 年",
-    score: 85,
-    tags: ["大模型", "Python", "增长"],
-    location: "上海",
-    note: "技术理解力强，可独立分析",
-  },
-  {
-    applicationId: "application_ai_pm_zhao_004",
-    name: "赵晗",
-    title: "产品经理 · 3 年",
-    score: 78,
-    tags: ["B 端", "SQL", "协作"],
-    location: "深圳",
-    note: "B 端经验匹配，待补 AI 背景",
-  },
+const candidates = [
+  { applicationId: DEMO_IDS.application, name: "李同学", score: 86, stage: "待验证" },
+  { applicationId: CANDIDATE_APPLICATION_IDS[1], name: "王同学", score: 82, stage: "待验证" },
+  { applicationId: CANDIDATE_APPLICATION_IDS[2], name: "陈同学", score: 89, stage: "待验证" },
+  { applicationId: CANDIDATE_APPLICATION_IDS[3], name: "赵同学", score: 78, stage: "待验证" },
 ];
 
-function HrCandidatesPage() {
+function JobCandidatesPage() {
   const { jobId } = Route.useParams();
   return (
     <PageShell>
-      <section className="relative overflow-hidden px-5 pb-8 pt-14 sm:px-8 sm:pt-16">
-        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-56 max-w-2xl bg-rainbow opacity-[0.08] blur-[80px]" />
-        <div className="relative mx-auto max-w-5xl">
-          <Link
-            to="/jd-parse"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> 返回岗位画像
-          </Link>
-          <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600">
-            <CheckCircle2 className="h-4 w-4" /> 岗位画像已确认，候选人排序已更新
-          </div>
-          <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">候选人排序 · AI 产品经理</h1>
-          <p className="mt-3 max-w-2xl text-muted-foreground">
-            岗位 ID：<span className="font-mono text-foreground">{jobId}</span> ·
-            基于已确认画像的必备技能、能力维度与经验要求展示规则评分与排序。
+      <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
+        <div className="mb-6 rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-8">
+          <p className="text-sm font-medium text-muted-foreground">岗位候选人</p>
+          <h1 className="mt-2 text-3xl font-semibold">AI 产品经理（校招）</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            岗位 {jobId} 的候选人列表入口已恢复。
           </p>
-          <DemoNotice className="mt-5 max-w-3xl" />
         </div>
-      </section>
-      <div className="mx-auto max-w-5xl px-5 pb-24 sm:px-8">
-        <div className="space-y-4">
-          {CANDIDATES.map((c, i) => (
-            <div
-              key={c.name}
-              className="animate-float-up rounded-2xl border border-border bg-card p-6 shadow-soft"
-              style={{ animationDelay: `${i * 70}ms` }}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {candidates.map((candidate) => (
+            <article
+              key={candidate.applicationId}
+              className="rounded-3xl border border-border bg-card p-5 shadow-soft"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2.5">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-sm font-semibold">
-                      #{i + 1}
-                    </span>
-                    <h3 className="truncate text-lg font-semibold">{c.name}</h3>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Briefcase className="h-3.5 w-3.5" />
-                      {c.title}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {c.location}
-                    </span>
-                  </div>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold">{candidate.name}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{candidate.stage}</p>
                 </div>
-                <div className="flex shrink-0 flex-col items-center rounded-2xl bg-rainbow px-4 py-2 text-white">
-                  <span className="font-display text-2xl font-bold leading-none">{c.score}</span>
-                  <span className="text-[10px] opacity-90">匹配度</span>
-                </div>
+                <span className="rounded-full bg-violet-500/10 px-3 py-1 text-sm font-medium text-violet-700">
+                  {candidate.score}
+                </span>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {c.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground"
-                  >
-                    {t}
-                  </span>
-                ))}
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Button size="sm" className="rounded-full" asChild>
+                  <a href={`/hr/applications/${candidate.applicationId}`}>查看详情</a>
+                </Button>
+                <Button size="sm" variant="outline" className="rounded-full" asChild>
+                  <a href={`/hr/applications/${candidate.applicationId}/human-interview`}>约面试</a>
+                </Button>
               </div>
-              <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">
-                {c.note}
-              </p>
-              <div className="mt-4 flex justify-end">
-                <a
-                  href={`/hr/jobs/${jobId}/candidates/${c.applicationId}?fail=false`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.02]"
-                >
-                  查看候选人详情 <ArrowRight className="h-4 w-4" />
-                </a>
-              </div>
-            </div>
+            </article>
           ))}
         </div>
-      </div>
+      </section>
     </PageShell>
   );
 }

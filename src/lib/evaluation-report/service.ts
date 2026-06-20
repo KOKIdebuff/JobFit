@@ -1,3 +1,4 @@
+import { hirelinkApi } from "@/lib/hirelink-api/service";
 import {
   createEmptyReportState,
   createEvaluationReport,
@@ -13,7 +14,7 @@ import {
 
 const STORAGE_KEY = "hirelink:evaluation-report:v1";
 const STORAGE_VERSION = 1;
-const GENERATION_DURATION = 2800;
+const GENERATION_DURATION = 1400;
 
 interface PersistedState {
   version: number;
@@ -52,7 +53,21 @@ function readPersistedState() {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedState;
-    return parsed.version === STORAGE_VERSION ? parsed.state : null;
+    if (parsed.version !== STORAGE_VERSION) return null;
+    if (parsed.state.report?.applicationId === REPORT_DEMO_IDS.legacyApplication) {
+      return {
+        ...parsed.state,
+        report: {
+          ...parsed.state.report,
+          applicationId: REPORT_DEMO_IDS.application,
+          summary: {
+            ...parsed.state.report.summary,
+            applicationDisplayId: REPORT_DEMO_IDS.application,
+          },
+        },
+      } satisfies EvaluationReportState;
+    }
+    return parsed.state;
   } catch {
     return null;
   }
@@ -81,38 +96,38 @@ function later(callback: () => void, delay: number) {
 }
 
 function completeGeneration(failed: boolean, fallback = false) {
-  update((current) => {
-    if (failed) {
-      return {
-        ...current,
-        report: current.report
-          ? {
-              ...current.report,
-              status: "failed",
-              generationError: "证据链报告生成失败，上游简历、匹配、面试和岗位任务数据均已保留。",
-              generationActiveStep: Math.max(2, current.report.generationActiveStep),
-            }
-          : createFailedReport(),
-      };
-    }
-    return {
+  const previous = state.report;
+  if (failed) {
+    update((current) => ({
       ...current,
-      report: createEvaluationReport({
-        status: fallback ? "fallback" : "pending_review",
-        previous: current.report,
-      }),
-    };
-  });
-}
-
-function createFailedReport(): EvaluationReport {
-  const report = createEvaluationReport({ status: "fallback", previous: state.report });
-  return {
-    ...report,
-    status: "failed",
-    generationError: "证据链报告生成失败，上游简历、匹配、面试和岗位任务数据均已保留。",
-    generationActiveStep: 2,
-  };
+      loading: false,
+      hydrated: true,
+      report: previous
+        ? {
+            ...previous,
+            status: "failed",
+            generationError: "报告生成失败，请重试或使用兜底结构。",
+            generationActiveStep: 2,
+          }
+        : {
+            ...createEvaluationReport({ previous }),
+            status: "failed",
+            generationError: "报告生成失败，请重试或使用兜底结构。",
+            generationActiveStep: 2,
+          },
+    }));
+    return;
+  }
+  update((current) => ({
+    ...current,
+    loading: false,
+    hydrated: true,
+    access: "allowed",
+    report: createEvaluationReport({
+      status: fallback ? "fallback" : "pending_review",
+      previous: current.report,
+    }),
+  }));
 }
 
 function resumeGeneration() {
@@ -130,67 +145,59 @@ function resumeGeneration() {
     Math.floor(elapsed / stepDuration),
   );
   update(
-    (current) => ({
-      ...current,
-      report: current.report
-        ? { ...current.report, generationActiveStep: activeStep }
-        : current.report,
-    }),
+    (current) =>
+      current.report
+        ? { ...current, report: { ...current.report, generationActiveStep: activeStep } }
+        : current,
     { persist: false },
   );
   for (let index = activeStep + 1; index < REPORT_GENERATION_STEPS.length; index += 1) {
+    const delay = Math.max(0, index * stepDuration - elapsed);
     later(
-      () => {
-        update((current) => ({
-          ...current,
-          report: current.report
-            ? { ...current.report, generationActiveStep: index }
-            : current.report,
-        }));
-      },
-      Math.max(0, index * stepDuration - elapsed),
+      () =>
+        update((current) =>
+          current.report
+            ? { ...current, report: { ...current.report, generationActiveStep: index } }
+            : current,
+        ),
+      delay,
     );
   }
   later(() => completeGeneration(false), Math.max(0, GENERATION_DURATION - elapsed));
 }
 
-function beginGeneration(options: { fail?: boolean; fallback?: boolean } = {}) {
+function beginGeneration(options: { fail?: boolean; applicationId?: string } = {}) {
   clearTimers();
   const previous = state.report;
   const startedAt = nowIso();
-  const placeholder = createEvaluationReport({
-    status: previous?.status === "stale" ? "pending_review" : "pending_review",
-    previous,
-  });
+  const placeholder: EvaluationReport = {
+    ...createEvaluationReport({ previous, applicationId: options.applicationId }),
+    id: previous?.id || `evaluation_report_${REPORT_DEMO_IDS.application}_draft`,
+    status: "generating",
+    generationStartedAt: startedAt,
+    generationActiveStep: 0,
+    generationError: undefined,
+  };
   update((current) => ({
     ...current,
-    report: {
-      ...placeholder,
-      status: "generating",
-      generationStartedAt: startedAt,
-      generationActiveStep: 0,
-      generationError: undefined,
-      generatedAt: previous?.generatedAt,
-      version: previous?.version || 0,
-      id: previous?.id || `evaluation_report_${REPORT_DEMO_IDS.application}_draft`,
-    },
+    hydrated: true,
+    loading: false,
+    access: "allowed",
+    report: placeholder,
   }));
-
   const stepDuration = GENERATION_DURATION / REPORT_GENERATION_STEPS.length;
   REPORT_GENERATION_STEPS.forEach((_, index) => {
-    later(() => {
-      update((current) => ({
-        ...current,
-        report: current.report
-          ? { ...current.report, generationActiveStep: index }
-          : current.report,
-      }));
-    }, index * stepDuration);
+    later(
+      () =>
+        update((current) =>
+          current.report
+            ? { ...current, report: { ...current.report, generationActiveStep: index } }
+            : current,
+        ),
+      index * stepDuration,
+    );
   });
-  later(
-    () => completeGeneration(Boolean(options.fail), Boolean(options.fallback)),
-    GENERATION_DURATION,
-  );
+  later(() => completeGeneration(Boolean(options.fail)), GENERATION_DURATION);
 }
 
 export const evaluationReportStore = {
@@ -208,34 +215,51 @@ export const evaluationReportStore = {
 
 export const evaluationReportService = {
   async load(applicationId: string = REPORT_DEMO_IDS.application) {
-    if (!isReportApplicationId(applicationId)) {
-      state = { ...createEmptyReportState(), hydrated: true, loading: false, access: "forbidden" };
+    try {
+      state = { ...state, loading: true };
+      emit();
+      state = await hirelinkApi.getReport(applicationId);
       emit();
       return state;
-    }
-    if (state.hydrated) {
+    } catch {
+      if (!isReportApplicationId(applicationId)) {
+        state = {
+          ...createEmptyReportState(),
+          hydrated: true,
+          loading: false,
+          access: "forbidden",
+        };
+        emit();
+        return state;
+      }
+      state = { ...state, loading: true };
+      emit();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      const persisted = readPersistedState();
+      state = persisted
+        ? { ...persisted, hydrated: true, loading: false, access: "allowed" }
+        : { ...createEmptyReportState(), hydrated: true, loading: false, access: "allowed" };
+      emit();
       this.syncStale();
+      resumeGeneration();
       return state;
     }
-    state = { ...state, loading: true };
-    emit();
-    await new Promise((resolve) => setTimeout(resolve, 220));
-    const persisted = readPersistedState();
-    state = persisted
-      ? { ...persisted, hydrated: true, loading: false, access: "allowed" }
-      : { ...createEmptyReportState(), hydrated: true, loading: false, access: "allowed" };
-    emit();
-    this.syncStale();
-    resumeGeneration();
-    return state;
   },
 
-  generate(options: { fail?: boolean } = {}) {
+  generate(options: { fail?: boolean; applicationId?: string } = {}) {
     beginGeneration(options);
+    void hirelinkApi
+      .generateReport(options.applicationId ?? REPORT_DEMO_IDS.application)
+      .then((next) => {
+        state = next;
+        persist();
+        emit();
+      })
+      .catch(() => undefined);
   },
 
-  retry(options: { fail?: boolean } = {}) {
-    beginGeneration(options);
+  retry(options: { fail?: boolean; applicationId?: string } = {}) {
+    this.generate(options);
   },
 
   useFallback() {
@@ -243,45 +267,44 @@ export const evaluationReportService = {
     completeGeneration(false, true);
   },
 
-  confirm(confirmedBy = "陈经理") {
-    update((current) => {
-      if (
-        !current.report ||
-        !["pending_review", "fallback", "stale"].includes(current.report.status)
-      ) {
-        return current;
-      }
-      const confirmedAt = nowIso();
-      return {
-        ...current,
-        report: {
-          ...current.report,
-          status: "confirmed",
-          confirmedAt,
-          confirmedBy,
-          hrReview: {
-            ...current.report.hrReview,
-            reviewed: true,
-            confirmedAt,
-            confirmedBy,
-          },
-        },
-      };
-    });
+  confirm(confirmedBy = "陈经理", applicationId: string = REPORT_DEMO_IDS.application) {
+    void hirelinkApi
+      .confirmReport(applicationId)
+      .then((next) => {
+        state = next;
+        persist();
+        emit();
+      })
+      .catch(() => {
+        const confirmedAt = nowIso();
+        update((current) =>
+          current.report && ["pending_review", "fallback", "stale"].includes(current.report.status)
+            ? {
+                ...current,
+                report: {
+                  ...current.report,
+                  status: "confirmed",
+                  confirmedAt,
+                  confirmedBy,
+                  hrReview: {
+                    ...current.report.hrReview,
+                    reviewed: true,
+                    confirmedAt,
+                    confirmedBy,
+                  },
+                },
+              }
+            : current,
+        );
+      });
   },
 
   markStale(reason = "上游匹配、面试或任务数据发生变化，当前报告需要重新生成。") {
-    update((current) => {
-      if (!current.report || current.report.status === "generating") return current;
-      return {
-        ...current,
-        report: {
-          ...current.report,
-          status: "stale",
-          staleReason: reason,
-        },
-      };
-    });
+    update((current) =>
+      current.report && current.report.status !== "generating"
+        ? { ...current, report: { ...current.report, status: "stale", staleReason: reason } }
+        : current,
+    );
   },
 
   syncStale() {
@@ -289,7 +312,7 @@ export const evaluationReportService = {
     if (!report || ["generating", "failed", "not_generated"].includes(report.status)) return;
     const currentVersion = getReportInputDataVersion();
     if (report.inputDataVersion !== currentVersion && report.status !== "stale") {
-      this.markStale("上游匹配、面试或任务数据已经更新，旧报告版本仍保留。");
+      this.markStale("上游匹配、面试或任务数据已经更新，旧报告版本仍会保留。");
     }
   },
 
@@ -312,10 +335,7 @@ export const evaluationReportService = {
       current.report
         ? {
             ...current,
-            report: {
-              ...current.report,
-              hrReview: { ...current.report.hrReview, reviewed: true },
-            },
+            report: { ...current.report, hrReview: { ...current.report.hrReview, reviewed: true } },
           }
         : current,
     );

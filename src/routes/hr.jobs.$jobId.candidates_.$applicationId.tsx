@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, CheckCircle2, FileText } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -14,16 +14,7 @@ import {
   ValidationRecommendations,
 } from "@/components/candidate-detail/CandidateDetailSections";
 import { PageShell } from "@/components/site/PageShell";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { RecruitmentDecisionSummary } from "@/components/recruitment-decision/RecruitmentDecisionSummary";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -71,7 +62,6 @@ function CandidateDetailPage() {
   const state = useCandidateDetailDemo(applicationId);
   const [resumeOpen, setResumeOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
-  const [pauseOpen, setPauseOpen] = useState(false);
   const [note, setNote] = useState("");
 
   const listPath = () =>
@@ -84,6 +74,12 @@ function CandidateDetailPage() {
     navigate({
       to: "/hr/jobs/$jobId/candidates/$applicationId/assessment-plan",
       params: { jobId: state.job.id, applicationId: state.application.id },
+    });
+
+  const reportPath = () =>
+    navigate({
+      to: "/hr/applications/$applicationId/report",
+      params: { applicationId: state.application.id },
     });
 
   const clearDemoSearch = async () => {
@@ -184,9 +180,6 @@ function CandidateDetailPage() {
           <span className="font-medium">当前角色：HR</span>
           <span className="text-muted-foreground">当前岗位：{state.job.title}</span>
           <span className="text-muted-foreground">候选人：{state.candidate.name}</span>
-          <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
-            匹配规则：{state.match_result.ruleVersion}
-          </span>
         </div>
       </section>
 
@@ -218,6 +211,10 @@ function CandidateDetailPage() {
 
           <div className="min-w-0 space-y-6">
             <RecruitmentPipeline state={state} />
+            <RecruitmentDecisionSummary
+              applicationId={state.application.id}
+              onViewReport={reportPath}
+            />
             <CandidateSummary state={state} />
             <CandidateProfileSection state={state} />
             <MatchExplanation state={state} />
@@ -233,12 +230,7 @@ function CandidateDetailPage() {
               candidateDetailDemoService.usePresetAssessmentPlan();
               toast.success("已使用系统验证方案");
             }}
-            onViewReport={() =>
-              navigate({
-                to: "/hr/applications/$applicationId/report",
-                params: { applicationId: state.application.id },
-              })
-            }
+            onViewReport={reportPath}
             onNote={openNote}
             onPriority={() => {
               candidateDetailDemoService.togglePriority();
@@ -248,7 +240,6 @@ function CandidateDetailPage() {
               candidateDetailDemoService.toggleFavorite();
               toast.success(state.application.favorite ? "已取消收藏" : "已收藏候选人");
             }}
-            onPause={() => setPauseOpen(true)}
             onBack={listPath}
           />
         </div>
@@ -283,29 +274,6 @@ function CandidateDetailPage() {
           toast.success("HR 备注已保存");
         }}
       />
-
-      <AlertDialog open={pauseOpen} onOpenChange={setPauseOpen}>
-        <AlertDialogContent className="sm:rounded-3xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认暂不推进该候选人？</AlertDialogTitle>
-            <AlertDialogDescription>
-              候选人资料、匹配结果和 HR 备注会继续保留，后续仍可恢复处理。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">取消</AlertDialogCancel>
-            <AlertDialogAction
-              className="rounded-full"
-              onClick={() => {
-                candidateDetailDemoService.pauseApplication();
-                toast.success("已标记为暂不推进");
-              }}
-            >
-              确认暂不推进
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </PageShell>
   );
 }

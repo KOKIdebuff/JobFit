@@ -1,7 +1,6 @@
 import {
   ArrowLeft,
   ArrowRight,
-  Bot,
   CheckCircle2,
   Eye,
   FileText,
@@ -38,6 +37,7 @@ import { getCoverageEvidenceIds } from "@/lib/evaluation-report/adapter";
 import type { EvaluationReport, EvidenceSourceKey } from "@/lib/evaluation-report/types";
 import { findEvidence, formatReportDate } from "@/lib/evaluation-report/ui";
 import { cn } from "@/lib/utils";
+import { RecruitmentDecisionPanel } from "@/components/recruitment-decision/RecruitmentDecisionPanel";
 import { EvidenceDetails, EvidenceQuoteList, ReportStatusBadge, StatusDot } from "./ReportCommon";
 import { CandidateEvidenceFeedback } from "./CandidateEvidenceFeedback";
 
@@ -53,16 +53,17 @@ export function HrEvidenceReport({
   report,
   onBackDetail,
   onBackList,
+  onViewAgentRun,
 }: {
   report: EvaluationReport;
   onBackDetail: () => void;
   onBackList: () => void;
+  onViewAgentRun: () => void;
 }) {
   const [source, setSource] = useState<EvidenceSourceKey | "all">("all");
   const [evidenceIds, setEvidenceIds] = useState<string[]>([]);
   const [noteOpen, setNoteOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [agentOpen, setAgentOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [note, setNote] = useState(report.hrReview.note);
@@ -87,9 +88,7 @@ export function HrEvidenceReport({
                   {report.summary.candidateName} · {report.summary.jobTitle}
                 </h1>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                  申请 ID：{report.summary.applicationDisplayId} · 版本 v{report.version} ·
-                  生成时间：
-                  {formatReportDate(report.generatedAt)}
+                  生成时间：{formatReportDate(report.generatedAt)}
                 </p>
               </div>
               <ReportStatusBadge status={report.status} />
@@ -101,8 +100,8 @@ export function HrEvidenceReport({
               <Button variant="outline" className="rounded-full" onClick={onBackList}>
                 返回候选人列表
               </Button>
-              <Button variant="ghost" className="rounded-full" onClick={() => setAgentOpen(true)}>
-                <Bot /> 查看 Agent 运行详情
+              <Button variant="ghost" className="rounded-full" onClick={onViewAgentRun}>
+                <FileText /> 查看 Agent 运行详情
               </Button>
             </div>
           </section>
@@ -264,6 +263,11 @@ export function HrEvidenceReport({
               <EvidenceTimeline report={report} />
             </TabsContent>
           </Tabs>
+
+          <RecruitmentDecisionPanel
+            applicationId={report.applicationId}
+            reportConfirmed={report.status === "confirmed"}
+          />
         </div>
 
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
@@ -341,21 +345,12 @@ export function HrEvidenceReport({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-card p-5 text-sm shadow-soft">
-            <h3 className="font-semibold">版本与规则</h3>
-            <div className="mt-3 space-y-2 text-muted-foreground">
-              <p>输入版本：{report.inputDataVersion}</p>
-              <p>规则版本：{report.ruleVersion}</p>
-              <p>Prompt：{report.promptVersion}</p>
-            </div>
-          </section>
-
           <Button
             variant="ghost"
             className="w-full rounded-full text-muted-foreground"
             onClick={() => setResetOpen(true)}
           >
-            <RotateCcw /> 重置本次报告演示
+            <RotateCcw /> 重置本次报告
           </Button>
         </aside>
       </div>
@@ -396,13 +391,13 @@ export function HrEvidenceReport({
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:rounded-3xl">
           <DialogHeader>
-            <DialogTitle>确认发布本版本报告？</DialogTitle>
+            <DialogTitle>确认发布报告？</DialogTitle>
             <DialogDescription>
-              确认后候选人反馈页将解锁；本次报告版本锁定，后续上游变化需要重新生成新版本。
+              确认后候选人反馈页将解锁；后续上游变化需要重新生成报告。
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-2xl bg-secondary/50 p-4 text-sm">
-            当前版本：v{report.version} · 候选人：{report.summary.candidateName}
+            候选人：{report.summary.candidateName}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
@@ -421,31 +416,6 @@ export function HrEvidenceReport({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={agentOpen} onOpenChange={setAgentOpen}>
-        <DialogContent className="sm:max-w-2xl sm:rounded-3xl">
-          <DialogHeader>
-            <DialogTitle>Agent 运行详情</DialogTitle>
-            <DialogDescription>报告生成的版本、输入摘要和结构校验状态。</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3 text-sm sm:grid-cols-2">
-            <AgentBox label="Agent Run ID" value={report.agentRunId} />
-            <AgentBox
-              label="状态"
-              value={report.status === "fallback" ? "已使用兜底结构" : "结构校验完成"}
-            />
-            <AgentBox label="规则版本" value={report.ruleVersion} />
-            <AgentBox label="Prompt 版本" value={report.promptVersion} />
-          </div>
-          <div className="rounded-2xl border border-border p-4 text-sm">
-            <div className="font-medium">输入摘要</div>
-            <p className="mt-2 leading-relaxed text-muted-foreground">
-              已聚合岗位、职业画像、申请、匹配结果、验证方案、面试回答、岗位任务提交、任务评价和 HR
-              复核信息。
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl sm:rounded-3xl">
           <DialogHeader>
@@ -459,7 +429,7 @@ export function HrEvidenceReport({
       <Dialog open={resetOpen} onOpenChange={setResetOpen}>
         <DialogContent className="sm:rounded-3xl">
           <DialogHeader>
-            <DialogTitle>确认重置报告演示？</DialogTitle>
+            <DialogTitle>确认重置报告？</DialogTitle>
             <DialogDescription>
               只清除当前浏览器会话中的报告版本，不会清除简历、匹配、面试和任务数据。
             </DialogDescription>
@@ -473,7 +443,7 @@ export function HrEvidenceReport({
               onClick={() => {
                 evaluationReportService.resetDemo();
                 setResetOpen(false);
-                toast.success("报告演示状态已重置");
+                toast.success("报告状态已重置");
               }}
             >
               确认重置
@@ -552,7 +522,6 @@ function MatchBasis({ report }: { report: EvaluationReport }) {
         <div className="rounded-2xl bg-primary p-5 text-primary-foreground">
           <div className="text-sm opacity-70">匹配总分</div>
           <div className="mt-1 font-display text-5xl font-bold">{report.matchBasis.total}</div>
-          <div className="mt-2 text-xs opacity-70">规则版本：{report.matchBasis.ruleVersion}</div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           {report.matchBasis.dimensions.map((dimension) => (
@@ -638,9 +607,8 @@ function EvidenceTimeline({ report }: { report: EvaluationReport }) {
           evidence={[item]}
         >
           <div className="mt-3 grid gap-2 rounded-xl bg-secondary/45 p-3 text-xs text-muted-foreground sm:grid-cols-2">
-            <span>来源对象：{item.sourceObject}</span>
+            <span>来源：{typeLabel(item.type)}</span>
             <span>采集时间：{formatReportDate(item.collectedAt)}</span>
-            <span>数据版本：{item.dataVersion}</span>
             <span>支持能力：{item.abilities.join("、")}</span>
           </div>
         </EvidenceDetails>
@@ -667,15 +635,6 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
     <div className="border-b border-border pb-3 last:border-0 last:pb-0">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="mt-1 leading-relaxed">{value}</div>
-    </div>
-  );
-}
-
-function AgentBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-secondary/50 p-4">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 break-all font-mono text-xs">{value}</div>
     </div>
   );
 }

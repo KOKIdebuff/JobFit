@@ -21,12 +21,22 @@ import {
   Sparkles,
   Star,
   Target,
+  X,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ASSESSMENT_GENERATION_STEPS,
   formatCandidateDate,
@@ -165,11 +175,13 @@ export function CandidateIdentitySidebar({
   onResume: () => void;
   onSwitchCandidate: () => void;
 }) {
+  const candidateInitial = state.candidate.name.trim().slice(0, 1);
+
   return (
     <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
       <section className="rounded-3xl border border-border bg-card p-5 shadow-soft">
         <div className="grid h-16 w-16 place-items-center rounded-2xl bg-primary text-xl font-semibold text-primary-foreground">
-          李
+          {candidateInitial}
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <h1 className="text-xl font-semibold">{state.candidate.name}</h1>
@@ -338,23 +350,53 @@ export function CandidateSummary({ state }: { state: CandidateDetailDemoState })
 }
 
 export function CandidateProfileSection({ state }: { state: CandidateDetailDemoState }) {
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const isMobile = useIsMobile();
+  const selectedCategory = state.candidate_profile.categories.find(
+    (category) => category.id === selectedCategoryId,
+  );
+  const selectedEvidence = selectedCategory
+    ? getEvidence(state.evidence_items, selectedCategory.evidence_ids)
+    : [];
+
+  const closeEvidence = () => setSelectedCategoryId(null);
+
   return (
-    <section className="rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-7">
-      <div>
-        <h2 className="font-semibold">职业画像</h2>
-        <p className="mt-1 text-sm text-muted-foreground">每项结论都可展开查看对应简历依据。</p>
-      </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
-        {state.candidate_profile.categories.map((category) => {
-          const evidence = getEvidence(state.evidence_items, category.evidence_ids);
-          return (
-            <details
-              key={category.id}
-              className="group rounded-2xl border border-border bg-background p-4"
-            >
-              <summary className="cursor-pointer list-none">
+    <>
+      <section className="rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-7">
+        <div>
+          <h2 className="font-semibold">职业画像</h2>
+          <p className="mt-1 text-sm text-muted-foreground">点击画像卡片查看对应简历依据。</p>
+        </div>
+        <div className="mt-5 grid items-start gap-3 md:grid-cols-2">
+          {state.candidate_profile.categories.map((category) => {
+            const evidence = getEvidence(state.evidence_items, category.evidence_ids);
+            const selected = category.id === selectedCategoryId;
+            const evidenceSummary = evidence.length
+              ? `${evidence.length} 条依据 · ${evidence[0].title}${evidence.length > 1 ? "等" : ""}`
+              : "暂无可展示的简历依据";
+
+            return (
+              <button
+                key={category.id}
+                type="button"
+                data-candidate-profile-card
+                aria-expanded={selected}
+                aria-controls="candidate-profile-evidence-sheet"
+                onClick={(event) => {
+                  lastTriggerRef.current = event.currentTarget;
+                  setSelectedCategoryId(selected ? null : category.id);
+                }}
+                className={cn(
+                  "w-full rounded-2xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  selected
+                    ? "border-blue-500 bg-blue-500/5 shadow-sm"
+                    : "border-border bg-background hover:bg-secondary/30",
+                )}
+              >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <span
                       className={cn(
                         "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
@@ -369,18 +411,101 @@ export function CandidateProfileSection({ state }: { state: CandidateDetailDemoS
                     </span>
                     <p className="mt-3 text-sm leading-relaxed">{category.conclusion}</p>
                   </div>
-                  <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                  <ChevronDown
+                    className={cn(
+                      "mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                      selected && "rotate-180",
+                    )}
+                  />
                 </div>
                 <span className="mt-3 inline-flex text-xs font-medium text-violet-700">
-                  查看依据
+                  {selected ? "收起依据" : "查看依据"}
                 </span>
-              </summary>
-              <EvidenceQuotes evidence={evidence} />
-            </details>
-          );
-        })}
-      </div>
-    </section>
+                {selected && (
+                  <span className="mt-3 flex min-w-0 items-center rounded-xl bg-blue-500/5 px-3 py-2 text-xs text-blue-800">
+                    <span className="truncate">{evidenceSummary}</span>
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <Sheet
+        modal={false}
+        open={Boolean(selectedCategory)}
+        onOpenChange={(open) => !open && closeEvidence()}
+      >
+        <SheetContent
+          id="candidate-profile-evidence-sheet"
+          side={isMobile ? "bottom" : "right"}
+          showCloseButton={false}
+          overlayClassName="pointer-events-none bg-black/5"
+          onInteractOutside={(event) => {
+            const target = event.target;
+            if (target instanceof HTMLElement && target.closest("[data-candidate-profile-card]")) {
+              event.preventDefault();
+            }
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            lastTriggerRef.current?.focus();
+          }}
+          className={cn(
+            "overflow-y-auto p-0",
+            isMobile
+              ? "max-h-[85dvh] w-full rounded-t-3xl border-t"
+              : "w-[min(440px,calc(100vw-24px))] sm:max-w-[440px]",
+          )}
+        >
+          <div className="sticky top-0 z-10 border-b border-border bg-background/95 px-6 pb-5 pt-4 backdrop-blur-xl">
+            <div className="flex justify-end">
+              <SheetClose className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                关闭 <X className="h-4 w-4" />
+              </SheetClose>
+            </div>
+            <SheetHeader className="mt-2 text-left">
+              <SheetTitle>{selectedCategory?.label} · 简历依据</SheetTitle>
+              <SheetDescription>{selectedEvidence.length} 条证据</SheetDescription>
+            </SheetHeader>
+          </div>
+
+          <div className="space-y-4 p-6">
+            {selectedEvidence.length ? (
+              selectedEvidence.map((item) => (
+                <article
+                  key={item.id}
+                  className="rounded-2xl border border-blue-500/15 bg-blue-500/5 p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <Quote className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold">{item.title}</h3>
+                      <p className="mt-3 text-sm leading-7 text-muted-foreground">{item.excerpt}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2 border-t border-blue-500/10 pt-3">
+                    {item.abilities.map((ability) => (
+                      <span
+                        key={ability}
+                        className="rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground"
+                      >
+                        {ability}
+                      </span>
+                    ))}
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                暂无可展示的简历依据
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 
@@ -393,10 +518,6 @@ export function MatchExplanation({ state }: { state: CandidateDetailDemoState })
             <Target className="h-5 w-5 text-muted-foreground" />
             <h2 className="font-semibold">人岗匹配</h2>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            匹配规则版本：
-            <span className="font-mono text-foreground">{state.match_result.ruleVersion}</span>
-          </p>
         </div>
         <div className="rounded-2xl bg-rainbow px-5 py-3 text-center text-white">
           <div className="font-display text-4xl font-bold leading-none">
@@ -618,7 +739,6 @@ export function HrActionSidebar({
   onViewReport,
   onPriority,
   onFavorite,
-  onPause,
   onBack,
 }: {
   state: CandidateDetailDemoState;
@@ -630,7 +750,6 @@ export function HrActionSidebar({
   onViewReport?: () => void;
   onPriority: () => void;
   onFavorite: () => void;
-  onPause: () => void;
   onBack: () => void;
 }) {
   const generating = state.assessment_plan.status === "generating";
@@ -711,9 +830,6 @@ export function HrActionSidebar({
       </section>
 
       <div className="space-y-2">
-        <Button variant="outline" className="w-full rounded-full" onClick={onPause}>
-          暂不推进
-        </Button>
         <Button variant="ghost" className="w-full rounded-full" onClick={onBack}>
           <ArrowRight className="rotate-180" /> 返回候选人列表
         </Button>
@@ -770,10 +886,6 @@ export function SummaryStat({
 export function AgentRunDetails({ state }: { state: CandidateDetailDemoState }) {
   return (
     <div className="space-y-3 text-sm">
-      <div className="rounded-2xl bg-secondary/50 p-4">
-        <div className="text-xs text-muted-foreground">运行 ID</div>
-        <div className="mt-1 break-all font-mono text-xs">{state.ai_run.runId || "尚未运行"}</div>
-      </div>
       <div className="rounded-2xl bg-secondary/50 p-4">
         <div className="flex items-center gap-2 font-medium">
           <Clock3 className="h-4 w-4" /> 当前状态

@@ -1,8 +1,8 @@
 export const REPORT_DEMO_IDS = {
   job: "demo-ai-pm",
   candidate: "demo-candidate-001",
-  application: "demo-application-001",
-  legacyApplication: "application_ai_pm_li_001",
+  application: "application_ai_pm_li_001",
+  legacyApplication: "demo-application-001",
 } as const;
 
 export type ReportStatus =
@@ -13,7 +13,6 @@ export type ReportStatus =
   | "pending_review"
   | "confirmed"
   | "stale";
-
 export type EvidenceType =
   | "resume"
   | "candidate_profile"
@@ -24,7 +23,6 @@ export type EvidenceType =
   | "trial_evaluation"
   | "ai_run"
   | "hr_note";
-
 export type EvidenceCoverage = "sufficient" | "partial" | "needs_verification";
 export type EvidenceSourceKey = "resume" | "match" | "interview" | "trial";
 

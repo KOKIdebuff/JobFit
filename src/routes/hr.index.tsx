@@ -9,8 +9,10 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { PageShell } from "@/components/site/PageShell";
+import { RecruitmentDecisionStatusBadge } from "@/components/recruitment-decision/RecruitmentDecisionStatusBadge";
 import { Button } from "@/components/ui/button";
-import { DEMO_IDS } from "@/lib/candidate-detail-demo";
+import { useRecruitmentDecisionCollection } from "@/hooks/use-recruitment-decision";
+import { CANDIDATE_APPLICATION_IDS, DEMO_IDS } from "@/lib/candidate-detail-demo";
 
 export const Route = createFileRoute("/hr/")({
   head: () => ({
@@ -26,6 +28,16 @@ export const Route = createFileRoute("/hr/")({
 });
 
 function HrWorkspacePage() {
+  const { decisions, loading, error, retry } =
+    useRecruitmentDecisionCollection(CANDIDATE_APPLICATION_IDS);
+  const decisionValues = Object.values(decisions);
+  const count = (outcome: "advance_to_human_interview" | "hold" | "reject") =>
+    decisionValues.filter((decision) => decision.outcome === outcome).length;
+  const pendingCount =
+    CANDIDATE_APPLICATION_IDS.length -
+    decisionValues.filter((decision) => decision.status === "submitted").length;
+  const metricValue = (value: number) => (loading ? "—" : String(value));
+
   return (
     <PageShell>
       <section className="relative overflow-hidden px-5 pb-8 pt-12 sm:px-8 sm:pt-16">
@@ -43,8 +55,22 @@ function HrWorkspacePage() {
         <div className="grid gap-4 sm:grid-cols-3">
           <WorkspaceMetric icon={<BriefcaseBusiness />} label="招聘中岗位" value="1" />
           <WorkspaceMetric icon={<UsersRound />} label="当前候选人" value="4" />
-          <WorkspaceMetric icon={<Clock3 />} label="待生成验证方案" value="1" />
+          <WorkspaceMetric icon={<Clock3 />} label="待最终决策" value={metricValue(pendingCount)} />
         </div>
+
+        {error && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-800">
+            <span>{error}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={() => void retry()}
+            >
+              重试
+            </Button>
+          </div>
+        )}
 
         <section className="mt-6 rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -63,10 +89,19 @@ function HrWorkspacePage() {
               </a>
             </Button>
           </div>
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <StageCard label="匹配已完成" value="4 人" tone="positive" />
-            <StageCard label="待生成验证方案" value="1 人" tone="warning" />
-            <StageCard label="报告待复核" value="0 人" />
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StageCard label="待决策" value={`${metricValue(pendingCount)} 人`} />
+            <StageCard
+              label="进入真人面试"
+              value={`${metricValue(count("advance_to_human_interview"))} 人`}
+              tone="positive"
+            />
+            <StageCard label="暂缓推进" value={`${metricValue(count("hold"))} 人`} tone="warning" />
+            <StageCard
+              label="暂不推进"
+              value={`${metricValue(count("reject"))} 人`}
+              tone="danger"
+            />
           </div>
           <div className="mt-5 rounded-2xl border border-border bg-background p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -77,9 +112,7 @@ function HrWorkspacePage() {
                 <div>
                   <div className="flex items-center gap-2 font-medium">
                     李同学
-                    <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-xs text-violet-700">
-                      待能力验证
-                    </span>
+                    <RecruitmentDecisionStatusBadge decision={decisions[DEMO_IDS.application]} />
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
                     匹配分 86 · 申请于 2026-06-12
@@ -126,7 +159,7 @@ function StageCard({
 }: {
   label: string;
   value: string;
-  tone?: "neutral" | "positive" | "warning";
+  tone?: "neutral" | "positive" | "warning" | "danger";
 }) {
   return (
     <div
@@ -135,7 +168,9 @@ function StageCard({
           ? "rounded-2xl bg-emerald-500/5 p-4 text-emerald-800"
           : tone === "warning"
             ? "rounded-2xl bg-amber-500/5 p-4 text-amber-800"
-            : "rounded-2xl bg-secondary/50 p-4"
+            : tone === "danger"
+              ? "rounded-2xl bg-rose-500/5 p-4 text-rose-800"
+              : "rounded-2xl bg-secondary/50 p-4"
       }
     >
       <div className="flex items-center gap-2 text-sm">
