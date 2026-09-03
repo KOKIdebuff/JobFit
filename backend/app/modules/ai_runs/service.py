@@ -98,7 +98,7 @@ class AiRunService:
             if run.application is not None
             else None,
             operation=run.operation,
-            status=run.status,  # type: ignore[arg-type]
+            status=run.status,
             provider=run.provider,
             model=run.model,
             prompt_version=run.prompt_version,

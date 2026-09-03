@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
-from app.contracts.api import success_response
+from app.contracts.api import SuccessResponse, success_response
 from app.core.config import Settings, get_settings
 from app.db.session import get_session
 from app.modules.auth_users.deps import current_user
@@ -37,7 +37,7 @@ def list_jobs(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response({"jobs": service.list_jobs(user)}, request_id=request_id(request))
 
 
@@ -47,7 +47,7 @@ def create_job(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(service.create_job(user, payload), request_id=request_id(request))
 
 
@@ -57,7 +57,7 @@ def parse_job(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(service.parse_job(user, job_id), request_id=request_id(request))
 
 
@@ -66,7 +66,7 @@ def list_resumes(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response({"resumes": service.list_resumes(user)}, request_id=request_id(request))
 
 
@@ -76,7 +76,7 @@ def create_resume(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(service.create_resume(user, payload), request_id=request_id(request))
 
 
@@ -86,7 +86,7 @@ def create_application(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(
         service.create_application(user, payload), request_id=request_id(request)
     )
@@ -97,7 +97,7 @@ def candidate_applications(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(
         {"applications": service.candidate_applications(user)}, request_id=request_id(request)
     )
@@ -109,7 +109,7 @@ def hr_candidates(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(service.hr_candidates(user, job_id), request_id=request_id(request))
 
 
@@ -119,7 +119,7 @@ def application_detail(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(
         service.application_detail(user, application_id), request_id=request_id(request)
     )
@@ -132,7 +132,7 @@ def trial_task(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(
         service.update_trial_task(user, application_id, payload), request_id=request_id(request)
     )
@@ -145,7 +145,7 @@ def trial_submission(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(
         service.update_trial_submission(user, application_id, payload),
         request_id=request_id(request),
@@ -158,7 +158,7 @@ def generate_report(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(
         service.generate_report(user, application_id), request_id=request_id(request)
     )
@@ -170,7 +170,7 @@ def confirm_report(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(
         service.confirm_report(user, application_id), request_id=request_id(request)
     )
@@ -182,7 +182,7 @@ def get_report(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(
         service.report_for_user(user, application_id), request_id=request_id(request)
     )
@@ -195,7 +195,7 @@ def submit_decision(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response(
         service.submit_decision(user, application_id, payload), request_id=request_id(request)
     )
@@ -206,5 +206,5 @@ def ai_runs(
     request: Request,
     user: AuthUser = USER_DEPENDENCY,
     service: HireLinkCoreService = CORE_SERVICE_DEPENDENCY,
-):
+) -> SuccessResponse[dict[str, Any]]:
     return success_response({"runs": service.list_ai_runs(user)}, request_id=request_id(request))
