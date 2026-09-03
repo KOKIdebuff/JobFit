@@ -2,6 +2,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from app.contracts.api import success_response
 from app.contracts.errors import ErrorCode
@@ -9,8 +10,14 @@ from app.db.base import Base
 from app.db.session import create_database_engine
 from app.main import create_app
 from app.modules.auth_users.deps import require_role
+from app.modules.auth_users.repository import AuthUsersRepository
 from app.modules.auth_users.schemas import AuthUser
-from app.modules.auth_users.service import DEMO_CANDIDATE_EMAIL, DEMO_HR_EMAIL, DEMO_PASSWORD
+from app.modules.auth_users.service import (
+    DEMO_CANDIDATE_EMAIL,
+    DEMO_HR_EMAIL,
+    DEMO_PASSWORD,
+    password_hasher,
+)
 
 
 def assert_error_contract(response: Any, *, status_code: int, code: ErrorCode) -> None:
@@ -32,11 +39,16 @@ def test_demo_hr_can_login_and_read_me(client: TestClient) -> None:
     assert payload["success"] is True
     assert payload["data"]["user"]["role"] == "hr"
     assert payload["data"]["user"]["email"] == DEMO_HR_EMAIL
+    assert payload["data"]["user"]["display_name"] == "陈经理"
+    assert payload["data"]["user"]["organization_name"] == "星河智能"
     assert "hirelink_session" in response.cookies
 
     me = client.get("/api/v1/auth/me")
     assert me.status_code == 200
-    assert me.json()["data"]["user"]["email"] == DEMO_HR_EMAIL
+    me_user = me.json()["data"]["user"]
+    assert me_user["email"] == DEMO_HR_EMAIL
+    assert me_user["display_name"] == "陈经理"
+    assert me_user["organization_name"] == "星河智能"
 
 
 def test_candidate_demo_can_login(client: TestClient) -> None:
@@ -46,7 +58,45 @@ def test_candidate_demo_can_login(client: TestClient) -> None:
     )
 
     assert response.status_code == 200
-    assert response.json()["data"]["user"]["role"] == "candidate"
+    user = response.json()["data"]["user"]
+    assert user["role"] == "candidate"
+    assert user["email"] == DEMO_CANDIDATE_EMAIL
+    assert user["display_name"] == "李同学"
+    assert user["organization_name"] is None
+
+
+def test_demo_accounts_are_repaired_when_hr_demo_already_exists(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    repository = AuthUsersRepository(db_session)
+    organization = repository.create_organization("Legacy Org")
+    repository.create_user(
+        email=DEMO_HR_EMAIL,
+        username="hr_demo",
+        display_name="Broken HR",
+        role="hr",
+        password_hash=password_hasher.hash(DEMO_PASSWORD),
+        organization_id=organization.id,
+    )
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": DEMO_CANDIDATE_EMAIL, "password": DEMO_PASSWORD},
+    )
+
+    assert response.status_code == 200
+    user = response.json()["data"]["user"]
+    assert user["email"] == DEMO_CANDIDATE_EMAIL
+    assert user["display_name"] == "李同学"
+
+    db_session.expire_all()
+    hr_user = repository.get_user_by_email(DEMO_HR_EMAIL)
+    assert hr_user is not None
+    assert hr_user.display_name == "陈经理"
+    assert hr_user.organization is not None
+    assert hr_user.organization.name == "星河智能"
 
 
 def test_login_failure_uses_unified_error(client: TestClient) -> None:
@@ -79,8 +129,15 @@ def test_register_creates_candidate_and_sets_cookie(client: TestClient) -> None:
     assert response.status_code == 201
     payload = response.json()
     assert payload["data"]["user"]["role"] == "candidate"
+    assert payload["data"]["user"]["email"] == "new.candidate@hirelink.local"
+    assert payload["data"]["user"]["display_name"] == "新候选人"
     assert payload["data"]["user"]["organization_id"] is None
+    assert payload["data"]["user"]["organization_name"] is None
     assert "hirelink_session" in response.cookies
+
+    me = client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["data"]["user"]["email"] == "new.candidate@hirelink.local"
 
 
 def test_register_conflict_returns_user_conflict(client: TestClient) -> None:

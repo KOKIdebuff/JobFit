@@ -133,10 +133,6 @@ function Index() {
             <br className="hidden sm:block" />
             变成<span className="text-gradient">「精准连接 + 智能筛选」</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-base text-muted-foreground sm:text-lg">
-            P0 围绕简历解析、岗位理解、规则匹配、轻量面试、岗位任务和结构化报告， 建立求职者与 HR
-            的能力验证闭环。
-          </p>
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <Link
               to="/match"

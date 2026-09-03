@@ -31,7 +31,7 @@ export function HrHumanInterviewReportReference({ applicationId }: { application
           </p>
         </div>
         <Button variant="outline" className="rounded-full" asChild>
-          <a href={`/hr/applications/${applicationId}/human-interview`}>
+          <a href={`/human-interviews/hr/applications/${applicationId}`}>
             管理真人预约 <ExternalLink />
           </a>
         </Button>
@@ -82,7 +82,7 @@ export function CandidateHumanInterviewReportReference({
           </p>
         </div>
         <Button variant="outline" className="rounded-full" asChild>
-          <a href="/candidate/interviews">
+          <a href="/human-interviews/candidate">
             查看我的预约 <ExternalLink />
           </a>
         </Button>

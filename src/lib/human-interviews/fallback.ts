@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   HumanInterviewAvailabilitySlot,
   HumanInterviewBooking,
   HumanInterviewInvitation,
@@ -15,7 +15,7 @@ const candidate: HumanInterviewParticipant = {
   id: "candidate_li_001",
   name: "李同学",
   title: "候选人",
-  email: "li.candidate@example.com",
+  email: "candidate.demo@hirelink.local",
   phone: "13800001234",
 };
 
@@ -23,7 +23,7 @@ const hr: HumanInterviewParticipant = {
   id: "hr_chen_001",
   name: "陈经理",
   title: "岗位创建 HR",
-  email: "chen.hr@example.com",
+  email: "hr.demo@hirelink.local",
 };
 
 export const fallbackInterviewers: HumanInterviewParticipant[] = [
@@ -43,6 +43,19 @@ export const fallbackInterviewers: HumanInterviewParticipant[] = [
   },
 ];
 
+const today = new Date();
+const dayMs = 24 * 60 * 60 * 1000;
+
+function slotAt(dayOffset: number, hour: number) {
+  const start = new Date(today.getTime() + dayOffset * dayMs);
+  start.setHours(hour, 0, 0, 0);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  return { startAt: start.toISOString(), endAt: end.toISOString() };
+}
+
+const sentAt = new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString();
+const expiresAt = new Date(today.getTime() + 3 * dayMs).toISOString();
+
 const seedInvitation: HumanInterviewInvitation = {
   id: "hi_invite_001",
   token: HUMAN_INTERVIEW_DEMO_TOKEN,
@@ -54,42 +67,50 @@ const seedInvitation: HumanInterviewInvitation = {
   primaryInterviewer: fallbackInterviewers[0],
   interviewType: "online",
   status: "active",
-  createdAt: "2026-06-20T10:00:00+08:00",
-  expiresAt: "2026-06-23T10:00:00+08:00",
+  createdAt: sentAt,
+  expiresAt,
+  lastSentAt: sentAt,
+  needsResend: false,
   meetingLink: "https://meet.example.com/hirelink-ai-pm-li",
   locationTemplate: "上海市浦东新区张江路 88 号星河智能 12F 观澜会议室",
+  arrivalInstructions: "请提前 15 分钟到达前台，说明参加星河智能 AI 产品经理真人面试。",
 };
+
+const first = slotAt(2, 10);
+const second = slotAt(2, 14);
+const third = slotAt(3, 16);
+const fourth = slotAt(4, 11);
 
 const seedSlots: HumanInterviewAvailabilitySlot[] = [
   {
     id: "hi_slot_001",
     interviewerId: "interviewer_wang_001",
-    startAt: "2026-06-22T10:00:00+08:00",
-    endAt: "2026-06-22T11:00:00+08:00",
+    startAt: first.startAt,
+    endAt: first.endAt,
     timezone: "Asia/Shanghai",
     status: "available",
   },
   {
     id: "hi_slot_002",
     interviewerId: "interviewer_wang_001",
-    startAt: "2026-06-22T15:00:00+08:00",
-    endAt: "2026-06-22T16:00:00+08:00",
+    startAt: second.startAt,
+    endAt: second.endAt,
     timezone: "Asia/Shanghai",
     status: "available",
   },
   {
     id: "hi_slot_003",
     interviewerId: "interviewer_wang_001",
-    startAt: "2026-06-23T14:00:00+08:00",
-    endAt: "2026-06-23T15:00:00+08:00",
+    startAt: third.startAt,
+    endAt: third.endAt,
     timezone: "Asia/Shanghai",
     status: "available",
   },
   {
     id: "hi_slot_004",
     interviewerId: "interviewer_zhao_001",
-    startAt: "2026-06-24T11:00:00+08:00",
-    endAt: "2026-06-24T12:00:00+08:00",
+    startAt: fourth.startAt,
+    endAt: fourth.endAt,
     timezone: "Asia/Shanghai",
     status: "available",
   },
@@ -116,13 +137,13 @@ export function createFallbackReport(booking: HumanInterviewBooking): HumanInter
     status: "draft",
     conclusion: "建议进入后续业务面沟通",
     abilityAssessment:
-      "候选人在产品分析、结构化表达和用户问题拆解上表现稳定，仍需继续验证跨团队推进经验。",
+      "候选人在产品分析、结构化表达和用户问题拆解上表现稳定，后续可继续验证跨团队推进经验。",
     keyObservations: [
       "能用业务目标拆解功能优先级",
       "对 AI 产品评估指标有基础理解",
       "回答中能主动补充风险假设",
     ],
-    risksAndFollowups: ["需要追问真实项目中的冲突处理", "需继续确认数据分析深度"],
+    risksAndFollowups: ["需要追问真实项目中的冲突处理", "需要继续确认数据分析深度"],
     candidateSummary:
       "你在产品理解和表达结构上表现较好，后续建议准备一个完整项目复盘，突出指标、权衡和结果。",
     internalNotes: "HR 内部备注仅用于企业复核，不向候选人展示。",

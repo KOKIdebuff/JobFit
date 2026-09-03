@@ -6,11 +6,13 @@
   Loader2,
   Mail,
   Phone,
+  ShieldAlert,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { useHumanInterviewInvitation } from "@/hooks/use-human-interviews";
 import type {
   HumanInterviewAvailabilitySlot,
@@ -42,6 +45,7 @@ export function CandidateInterviewInvitation({
 }: {
   controller: ReturnType<typeof useHumanInterviewInvitation>;
 }) {
+  const { user, isLoading: userLoading } = useCurrentUser();
   const { view, loading, processing, error, retry, confirm } = controller;
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedSlot, setSelectedSlot] = useState<HumanInterviewAvailabilitySlot | null>(null);
@@ -50,7 +54,12 @@ export function CandidateInterviewInvitation({
     name: "",
     email: "",
     phone: "",
+    timezone: "Asia/Shanghai",
     note: "",
+    deviceIssue: false,
+    noCamera: false,
+    rescheduleNote: "",
+    specialSituation: "",
   });
 
   const invitation = view?.invitation;
@@ -76,25 +85,43 @@ export function CandidateInterviewInvitation({
   const contactReady = Boolean(contact.name.trim() && contact.email.trim() && contact.phone.trim());
   const emailLooksValid = !contact.email || /\S+@\S+\.\S+/.test(contact.email);
   const canSubmit = Boolean(selectedSlot && contactReady && emailLooksValid);
+  const candidateEmail = invitation?.candidate.email.toLowerCase();
+  const signedInAsCandidate = Boolean(
+    user &&
+    user.role === "candidate" &&
+    (!candidateEmail || user.email.toLowerCase() === candidateEmail),
+  );
+  const signedInWrongAccount = Boolean(user && !signedInAsCandidate);
 
-  if (loading)
+  if (loading) {
     return (
       <HumanInterviewStatePanel
-        title="正在加载预约邀请"
-        description="正在确认该预约链接、主面试官档期和会议或地点信息。"
+        title="正在加载预约邀约"
+        description="正在确认该预约链接、主面试官档期和面试方式。"
         tone="loading"
       />
     );
-  if (error || !view || !invitation)
+  }
+  if (error || !view || !invitation) {
     return (
       <HumanInterviewStatePanel
-        title="预约邀请暂时不可用"
-        description={error || "该预约邀请不存在或已经失效。"}
+        title="预约邀约暂时不可用"
+        description={error || "该预约邀约不存在或已经失效。"}
         tone="error"
         action={{ label: "重试", onClick: () => void retry() }}
       />
     );
-  if (invitation.status === "revoked" || invitation.status === "expired")
+  }
+  if (invitation.status === "draft") {
+    return (
+      <HumanInterviewStatePanel
+        title="预约邀约尚未发送"
+        description="HR 完成设置并发送后，你可以在这里选择可用面试时间。"
+        tone="neutral"
+      />
+    );
+  }
+  if (invitation.status === "revoked" || invitation.status === "expired") {
     return (
       <HumanInterviewStatePanel
         title="预约链接已失效"
@@ -102,20 +129,22 @@ export function CandidateInterviewInvitation({
         tone="error"
       />
     );
-  if (existingBooking)
+  }
+  if (existingBooking) {
     return (
       <HumanInterviewStatePanel
         title="面试时间已确认"
-        description={`${formatDateTime(existingBooking.startAt)}，${existingBooking.meetingLink || existingBooking.location || "会议或地点信息待补全"}`}
+        description={`${formatDateTime(existingBooking.startAt)}，详细会议或地点信息可在我的真人面试中查看。`}
         tone="success"
         action={{
           label: "查看我的预约",
           onClick: () => {
-            window.location.href = "/candidate/interviews";
+            window.location.href = "/human-interviews/candidate";
           },
         }}
       />
     );
+  }
 
   const requestConfirm = () => {
     if (!selectedSlot) {
@@ -128,6 +157,14 @@ export function CandidateInterviewInvitation({
     }
     if (!emailLooksValid) {
       toast.error("请填写有效邮箱地址");
+      return;
+    }
+    if (!user && !userLoading) {
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+    if (signedInWrongAccount) {
+      toast.error("当前登录账号与该邀约绑定的候选人不一致");
       return;
     }
     setConfirmOpen(true);
@@ -143,7 +180,7 @@ export function CandidateInterviewInvitation({
               {invitation.jobTitle} 真人面试预约
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              请选择主面试官开放的可预约时间段，并确认本次联系信息。确认后系统会锁定该时间段。
+              请选择主面试官开放的可预约时间段。会议链接或线下精确地点会在预约确认后展示。
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -151,6 +188,17 @@ export function CandidateInterviewInvitation({
             <StatusBadge tone="positive">{invitationStatusLabel(invitation.status)}</StatusBadge>
           </div>
         </div>
+        {signedInWrongAccount && (
+          <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-800">
+            <div className="flex items-start gap-2">
+              <ShieldAlert className="mt-0.5 h-4 w-4" />
+              <div>
+                当前登录账号不是该邀约绑定的候选人。请切换到 {invitation.candidate.email}{" "}
+                后再确认预约。
+              </div>
+            </div>
+          </div>
+        )}
         <div className="mt-6 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
           <div className="rounded-2xl border border-border bg-background p-4">
             <Calendar
@@ -158,7 +206,11 @@ export function CandidateInterviewInvitation({
               selected={selectedDate}
               onSelect={setSelectedDate}
               modifiers={{ hasSlot: (day) => datesWithSlots.has(day.toDateString()) }}
-              modifiersClassNames={{ hasSlot: "bg-primary/10 text-primary font-semibold" }}
+              modifiersClassNames={{
+                hasSlot:
+                  "[&_button:not([data-selected-single=true])]:rounded-md [&_button:not([data-selected-single=true])]:bg-accent [&_button:not([data-selected-single=true])]:text-accent-foreground [&_button:not([data-selected-single=true])]:font-semibold",
+              }}
+              classNames={{ today: "text-foreground" }}
               className="mx-auto"
             />
           </div>
@@ -181,7 +233,7 @@ export function CandidateInterviewInvitation({
                   key={slot.id}
                   type="button"
                   onClick={() => setSelectedSlot(slot)}
-                  className={`w-full rounded-2xl border p-4 text-left transition-colors ${selectedSlot?.id === slot.id ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-secondary/40"}`}
+                  className={`w-full rounded-2xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selectedSlot?.id === slot.id ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-secondary/40"}`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <span className="font-medium">
@@ -218,8 +270,8 @@ export function CandidateInterviewInvitation({
               label="面试方式"
               value={
                 invitation.interviewType === "online"
-                  ? invitation.meetingLink
-                  : invitation.locationTemplate
+                  ? "线上面试，预约确认后展示会议链接"
+                  : "线下面试，预约确认后展示精确地点与到场说明"
               }
             />
           </div>
@@ -243,21 +295,53 @@ export function CandidateInterviewInvitation({
               value={contact.phone}
               onChange={(phone) => setContact({ ...contact, phone })}
             />
+            <ContactInput
+              label="当前时区"
+              value={contact.timezone ?? ""}
+              onChange={(timezone) => setContact({ ...contact, timezone })}
+            />
+            <div className="grid gap-2 rounded-2xl bg-secondary/40 p-3 text-sm">
+              <label className="flex items-center gap-2">
+                <Checkbox
+                  checked={contact.deviceIssue}
+                  onCheckedChange={(checked) =>
+                    setContact({ ...contact, deviceIssue: Boolean(checked) })
+                  }
+                />{" "}
+                可能存在设备或网络问题
+              </label>
+              <label className="flex items-center gap-2">
+                <Checkbox
+                  checked={contact.noCamera}
+                  onCheckedChange={(checked) =>
+                    setContact({ ...contact, noCamera: Boolean(checked) })
+                  }
+                />{" "}
+                当前设备无摄像头
+              </label>
+            </div>
             <div className="space-y-2">
               <Label>补充说明</Label>
               <Textarea
-                value={contact.note}
-                onChange={(event) => setContact({ ...contact, note: event.target.value })}
+                value={contact.specialSituation}
+                onChange={(event) =>
+                  setContact({
+                    ...contact,
+                    specialSituation: event.target.value,
+                    note: event.target.value,
+                  })
+                }
+                placeholder="例如：时区、设备、改期偏好或其他特殊情况"
               />
             </div>
           </div>
           <Button
             className="mt-5 w-full rounded-full"
-            disabled={processing}
+            disabled={processing || userLoading}
             onClick={requestConfirm}
           >
-            {processing ? <Loader2 className="animate-spin" /> : <CalendarCheck2 />} 确认预约{" "}
-            <ArrowRight />
+            {processing || userLoading ? <Loader2 className="animate-spin" /> : <CalendarCheck2 />}{" "}
+            确认预约 <ArrowRight />
           </Button>
           {!canSubmit && (
             <p className="mt-3 text-xs text-muted-foreground">
@@ -270,7 +354,9 @@ export function CandidateInterviewInvitation({
         <DialogContent className="sm:rounded-3xl">
           <DialogHeader>
             <DialogTitle>确认本次真人面试时间？</DialogTitle>
-            <DialogDescription>确认后该时间段会立即锁定，并进入我的预约列表。</DialogDescription>
+            <DialogDescription>
+              确认后该时间段会立即锁定，并进入我的真人面试列表。
+            </DialogDescription>
           </DialogHeader>
           {selectedSlot && (
             <div className="space-y-3 rounded-2xl bg-secondary/45 p-4 text-sm">

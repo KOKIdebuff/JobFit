@@ -5,9 +5,12 @@ import { humanInterviewService } from "@/lib/human-interviews/service";
 import type {
   AddAvailabilitySlotInput,
   CandidateHumanInterviews,
+  CompletePendingConfirmationInput,
   ConfirmHumanInterviewInput,
   HumanInterviewInvitationView,
+  HumanInterviewMaintenanceResult,
   HumanInterviewWorkspace,
+  RequestPendingConfirmationInput,
   RescheduleHumanInterviewInput,
   SaveHumanInterviewReportInput,
   SaveInvitationSettingsInput,
@@ -37,17 +40,19 @@ export function useHrHumanInterview(applicationId: string) {
   }, [applicationId]);
 
   const run = useCallback(
-    async <T>(action: () => Promise<T>, success: string) => {
+    async <T>(action: () => Promise<T>, success: string): Promise<T | undefined> => {
       setProcessing(true);
       setError(null);
       try {
-        await action();
+        const result = await action();
         toast.success(success);
         await reload();
+        return result;
       } catch (nextError) {
         const message = messageFromError(nextError, "操作失败，请重试");
         setError(message);
         toast.error(message);
+        return undefined;
       } finally {
         setProcessing(false);
       }
@@ -69,9 +74,13 @@ export function useHrHumanInterview(applicationId: string) {
     error,
     retry: reload,
     createInvitation: () =>
-      run(() => humanInterviewService.createInvitation(applicationId), "预约链接已生成"),
+      run(() => humanInterviewService.createInvitation(applicationId), "邀约草稿已创建"),
+    sendInvitation: () =>
+      run(() => humanInterviewService.sendInvitation(applicationId), "预约邀约已发送"),
+    resendInvitation: () =>
+      run(() => humanInterviewService.resendInvitation(applicationId), "更新通知已重发"),
     revokeInvitation: () =>
-      run(() => humanInterviewService.revokeInvitation(applicationId), "预约链接已撤回"),
+      run(() => humanInterviewService.revokeInvitation(applicationId), "预约邀约已撤回"),
     saveSettings: (input: SaveInvitationSettingsInput) =>
       run(() => humanInterviewService.saveInvitationSettings(input), "预约设置已保存"),
     addSlot: (input: AddAvailabilitySlotInput) =>
@@ -83,6 +92,14 @@ export function useHrHumanInterview(applicationId: string) {
       ),
     updateBookingStatus: (input: UpdateBookingStatusInput) =>
       run(() => humanInterviewService.updateBookingStatus(input), "预约状态已更新"),
+    requestPendingConfirmation: (input: RequestPendingConfirmationInput) =>
+      run(() => humanInterviewService.requestPendingConfirmation(input), "预约已置为待补全确认"),
+    completePendingConfirmation: (input: CompletePendingConfirmationInput) =>
+      run(() => humanInterviewService.completePendingConfirmation(input), "预约已恢复确认"),
+    expirePendingConfirmations: (): Promise<HumanInterviewMaintenanceResult | undefined> =>
+      run(() => humanInterviewService.expirePendingConfirmations(), "过期待确认释放已执行"),
+    createBookingReminders: (): Promise<HumanInterviewMaintenanceResult | undefined> =>
+      run(() => humanInterviewService.createBookingReminders(), "面试提醒生成已执行"),
     rescheduleBooking: (input: RescheduleHumanInterviewInput) =>
       run(() => humanInterviewService.rescheduleBooking(input), "预约时间已改期"),
     saveReport: (input: SaveHumanInterviewReportInput) =>
@@ -104,7 +121,7 @@ export function useHumanInterviewInvitation(token: string) {
     try {
       setView(await humanInterviewService.getInvitation(token));
     } catch (nextError) {
-      setError(messageFromError(nextError, "预约邀请加载失败"));
+      setError(messageFromError(nextError, "预约邀约加载失败"));
     } finally {
       setLoading(false);
     }
@@ -158,17 +175,19 @@ export function useCandidateHumanInterviews() {
   }, []);
 
   const run = useCallback(
-    async <T>(action: () => Promise<T>, success: string) => {
+    async <T>(action: () => Promise<T>, success: string): Promise<T | undefined> => {
       setProcessing(true);
       setError(null);
       try {
-        await action();
+        const result = await action();
         toast.success(success);
         await reload();
+        return result;
       } catch (nextError) {
         const message = messageFromError(nextError, "操作失败，请重试");
         setError(message);
         toast.error(message);
+        return undefined;
       } finally {
         setProcessing(false);
       }
@@ -191,12 +210,7 @@ export function useCandidateHumanInterviews() {
     retry: reload,
     cancel: (bookingId: string, reason?: string) =>
       run(
-        () =>
-          humanInterviewService.updateBookingStatus({
-            bookingId,
-            status: "cancelled",
-            reason,
-          }),
+        () => humanInterviewService.updateBookingStatus({ bookingId, status: "cancelled", reason }),
         "预约已取消",
       ),
     reschedule: (input: RescheduleHumanInterviewInput) =>

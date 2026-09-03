@@ -46,7 +46,9 @@ function JobCandidatesPage() {
                   <a href={`/hr/applications/${candidate.applicationId}`}>查看详情</a>
                 </Button>
                 <Button size="sm" variant="outline" className="rounded-full" asChild>
-                  <a href={`/hr/applications/${candidate.applicationId}/human-interview`}>约面试</a>
+                  <a href={`/human-interviews/hr/applications/${candidate.applicationId}`}>
+                    约面试
+                  </a>
                 </Button>
               </div>
             </article>

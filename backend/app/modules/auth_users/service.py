@@ -89,25 +89,34 @@ class AuthService:
         return self.to_auth_user(user)
 
     def ensure_demo_accounts(self) -> None:
-        if self.repository.get_user_by_email(DEMO_HR_EMAIL) is not None:
-            return
         organization = self._get_or_create_organization("星河智能")
-        self.repository.create_user(
-            email=DEMO_HR_EMAIL,
-            username="hr_demo",
-            display_name="陈经理",
-            role="hr",
-            password_hash=password_hasher.hash(DEMO_PASSWORD),
-            organization_id=organization.id,
-        )
-        self.repository.create_user(
-            email=DEMO_CANDIDATE_EMAIL,
-            username="candidate_demo",
-            display_name="李同学",
-            role="candidate",
-            password_hash=password_hasher.hash(DEMO_PASSWORD),
-            organization_id=None,
-        )
+        hr_user = self.repository.get_user_by_email(DEMO_HR_EMAIL)
+        if hr_user is None:
+            self.repository.create_user(
+                email=DEMO_HR_EMAIL,
+                username="hr_demo",
+                display_name="陈经理",
+                role="hr",
+                password_hash=password_hasher.hash(DEMO_PASSWORD),
+                organization_id=organization.id,
+            )
+        else:
+            hr_user.display_name = "陈经理"
+            hr_user.organization_id = organization.id
+
+        candidate_user = self.repository.get_user_by_email(DEMO_CANDIDATE_EMAIL)
+        if candidate_user is None:
+            self.repository.create_user(
+                email=DEMO_CANDIDATE_EMAIL,
+                username="candidate_demo",
+                display_name="李同学",
+                role="candidate",
+                password_hash=password_hasher.hash(DEMO_PASSWORD),
+                organization_id=None,
+            )
+        else:
+            candidate_user.display_name = "李同学"
+            candidate_user.organization_id = None
         try:
             self.session.commit()
         except IntegrityError:

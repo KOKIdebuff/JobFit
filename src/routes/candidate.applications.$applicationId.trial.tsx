@@ -32,7 +32,7 @@ function CandidateTrialPage() {
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
             <Button className="rounded-full" asChild>
-              <a href="/candidate/interviews">查看我的面试</a>
+              <a href="/human-interviews/candidate">查看我的面试</a>
             </Button>
             <Button variant="outline" className="rounded-full" asChild>
               <a href="/candidate/applications/application_ai_pm_li_001/report">查看求职者报告</a>

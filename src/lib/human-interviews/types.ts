@@ -30,6 +30,11 @@ export interface HumanInterviewContact {
   email: string;
   phone: string;
   note?: string;
+  timezone?: string;
+  deviceIssue?: boolean;
+  noCamera?: boolean;
+  rescheduleNote?: string;
+  specialSituation?: string;
 }
 
 export interface HumanInterviewInvitation {
@@ -45,10 +50,13 @@ export interface HumanInterviewInvitation {
   status: HumanInterviewInvitationStatus;
   createdAt: string;
   expiresAt: string;
+  lastSentAt?: string;
+  needsResend?: boolean;
   revokedAt?: string;
   bookingId?: string;
   meetingLink: string;
   locationTemplate: string;
+  arrivalInstructions?: string;
 }
 
 export interface HumanInterviewAvailabilitySlot {
@@ -75,10 +83,13 @@ export interface HumanInterviewBooking {
   timezone: string;
   meetingLink?: string;
   location?: string;
+  arrivalInstructions?: string;
   contact: HumanInterviewContact;
   createdAt: string;
   updatedAt: string;
   cancellationReason?: string;
+  pendingConfirmationExpiresAt?: string;
+  pendingConfirmationReason?: string;
   rescheduledFromBookingId?: string;
   reportId?: string;
 }
@@ -112,6 +123,9 @@ export interface HumanInterviewWorkspace {
 
 export interface HumanInterviewInvitationView extends HumanInterviewWorkspace {
   token: string;
+  publicPreview: boolean;
+  sensitiveHidden: boolean;
+  requiresLoginToBook: boolean;
 }
 
 export interface CandidateHumanInterviews {
@@ -126,6 +140,7 @@ export interface SaveInvitationSettingsInput {
   interviewType: HumanInterviewType;
   meetingLink: string;
   locationTemplate: string;
+  arrivalInstructions?: string;
 }
 
 export interface AddAvailabilitySlotInput {
@@ -154,6 +169,18 @@ export interface UpdateBookingStatusInput {
   reason?: string;
 }
 
+export interface RequestPendingConfirmationInput {
+  bookingId: string;
+  reason: string;
+}
+
+export interface CompletePendingConfirmationInput {
+  bookingId: string;
+  meetingLink?: string;
+  location?: string;
+  arrivalInstructions?: string;
+}
+
 export interface SaveHumanInterviewReportInput {
   bookingId: string;
   conclusion: string;
@@ -163,4 +190,14 @@ export interface SaveHumanInterviewReportInput {
   candidateSummary: string;
   internalNotes: string;
   submitForReview?: boolean;
+}
+
+export interface SendInvitationResult {
+  workspace: HumanInterviewWorkspace;
+  notificationId: string;
+}
+
+export interface HumanInterviewMaintenanceResult {
+  processedCount: number;
+  bookingIds: string[];
 }

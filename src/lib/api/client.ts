@@ -41,6 +41,8 @@ export class ApiError extends Error {
 }
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
+const NETWORK_ERROR_MESSAGE =
+  "无法连接到 HireLink API，请确认后端 http://127.0.0.1:8000 已启动并已完成数据库迁移。";
 
 export function getApiBaseUrl() {
   const envBaseUrl = import.meta.env.VITE_HIRELINK_API_BASE_URL as string | undefined;
@@ -48,14 +50,22 @@ export function getApiBaseUrl() {
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
-    ...init,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...init.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getApiBaseUrl()}${path}`, {
+      ...init,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...init.headers,
+      },
+    });
+  } catch (error) {
+    throw new ApiError(NETWORK_ERROR_MESSAGE, "COMMON_NETWORK_ERROR", 0, {
+      path,
+      reason: error instanceof Error ? error.message : "network_error",
+    });
+  }
 
   const payload = (await response.json().catch(() => null)) as ApiSuccess<T> | ApiFailure | null;
   if (!response.ok || !payload || payload.success === false) {

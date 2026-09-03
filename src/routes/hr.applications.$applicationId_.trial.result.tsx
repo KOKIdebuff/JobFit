@@ -38,7 +38,7 @@ function TrialResultPage() {
               生成证据链报告
             </Button>
             <Button variant="outline" className="rounded-full" asChild>
-              <a href={`/hr/applications/${applicationId}/human-interview`}>安排真人面试</a>
+              <a href={`/human-interviews/hr/applications/${applicationId}`}>安排真人面试</a>
             </Button>
           </div>
         </div>

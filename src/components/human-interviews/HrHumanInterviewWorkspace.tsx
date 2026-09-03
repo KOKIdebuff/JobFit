@@ -1,4 +1,6 @@
-﻿import {
+import {
+  AlertTriangle,
+  Bell,
   CalendarPlus,
   CheckCircle2,
   ClipboardCopy,
@@ -9,6 +11,7 @@
   Send,
   UserCheck,
   UserX,
+  Wrench,
   XCircle,
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
@@ -73,11 +76,17 @@ export function HrHumanInterviewWorkspace({ controller }: { controller: Controll
     error,
     retry,
     createInvitation,
+    sendInvitation,
+    resendInvitation,
     revokeInvitation,
     saveSettings,
     addSlot,
     removeSlot,
     updateBookingStatus,
+    requestPendingConfirmation,
+    completePendingConfirmation,
+    expirePendingConfirmations,
+    createBookingReminders,
     rescheduleBooking,
     saveReport,
     publishReport,
@@ -85,17 +94,21 @@ export function HrHumanInterviewWorkspace({ controller }: { controller: Controll
   const [slotOpen, setSlotOpen] = useState(false);
   const [reportBooking, setReportBooking] = useState<HumanInterviewBooking | null>(null);
   const [rescheduleTarget, setRescheduleTarget] = useState<HumanInterviewBooking | null>(null);
+  const [pendingTarget, setPendingTarget] = useState<HumanInterviewBooking | null>(null);
+  const [completionTarget, setCompletionTarget] = useState<HumanInterviewBooking | null>(null);
+  const [maintenanceMessage, setMaintenanceMessage] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
-  if (loading)
+  if (loading) {
     return (
       <HumanInterviewStatePanel
         title="正在加载真人面试预约"
-        description="正在读取预约链接、主面试官档期、履约状态和报告审核信息。"
+        description="正在读取邀约草稿、候选人、主面试官档期、履约状态和报告审核信息。"
         tone="loading"
       />
     );
-  if (!workspace)
+  }
+  if (!workspace) {
     return (
       <HumanInterviewStatePanel
         title="真人面试预约暂时不可用"
@@ -104,6 +117,7 @@ export function HrHumanInterviewWorkspace({ controller }: { controller: Controll
         action={{ label: "重试", onClick: () => void retry() }}
       />
     );
+  }
 
   const invitation = workspace.invitation;
   const availableSlots = workspace.slots.filter((slot) => slot.status === "available");
@@ -111,13 +125,19 @@ export function HrHumanInterviewWorkspace({ controller }: { controller: Controll
   const activeReport = activeBooking
     ? workspace.reports.find((report) => report.bookingId === activeBooking.id)
     : undefined;
+  const missingToSend = humanInterviewService.sendReadiness(workspace);
   const counts = {
-    confirmed: workspace.bookings.filter(
-      (b) => b.status === "confirmed" || b.status === "rescheduled",
-    ).length,
+    available: availableSlots.length,
+    confirmed: workspace.bookings.filter((b) => b.status === "confirmed").length,
     completed: workspace.bookings.filter((b) => b.status === "completed").length,
     exceptions: workspace.bookings.filter((b) =>
-      ["candidate_no_show", "interviewer_no_show", "cancelled"].includes(b.status),
+      [
+        "pending_confirmation",
+        "expired",
+        "candidate_no_show",
+        "interviewer_no_show",
+        "cancelled",
+      ].includes(b.status),
     ).length,
   };
   const ask = (action: ConfirmAction) => setConfirmAction(action);
@@ -132,23 +152,23 @@ export function HrHumanInterviewWorkspace({ controller }: { controller: Controll
               {invitation?.candidate.name ?? "候选人"} · {invitation?.jobTitle ?? "当前申请"}
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-              HR
-              可在这里生成绑定申请的预约入口，维护线上会议或线下面试地点、一次性可预约档期，并在面试后审核发布求职者摘要版真人报告。
+              在这里保存邀约草稿、维护面试官与档期，并在条件齐备后向候选人发送站内预约邀约。
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {invitation && <HumanInterviewTypeBadge type={invitation.interviewType} />}
             <StatusBadge
               tone={
-                invitation?.status === "active"
+                invitation?.status === "active" || invitation?.status === "booked"
                   ? "positive"
                   : invitation?.status === "revoked"
                     ? "danger"
                     : "neutral"
               }
             >
-              {invitation ? invitationStatusLabel(invitation.status) : "待生成"}
+              {invitation ? invitationStatusLabel(invitation.status) : "待创建"}
             </StatusBadge>
+            {invitation?.needsResend && <StatusBadge tone="warning">有更新待通知</StatusBadge>}
           </div>
         </div>
         {error && (
@@ -165,7 +185,7 @@ export function HrHumanInterviewWorkspace({ controller }: { controller: Controll
           </div>
         )}
         <div className="mt-6 grid gap-3 md:grid-cols-4">
-          <Metric label="可预约时间段" value={`${availableSlots.length} 个`} />
+          <Metric label="可预约时间段" value={`${counts.available} 个`} />
           <Metric label="已确认预约" value={`${counts.confirmed} 场`} />
           <Metric label="已完成面试" value={`${counts.completed} 场`} />
           <Metric label="异常/取消" value={`${counts.exceptions} 场`} />
@@ -177,7 +197,7 @@ export function HrHumanInterviewWorkspace({ controller }: { controller: Controll
         className="rounded-3xl border border-border bg-card p-4 shadow-soft sm:p-6"
       >
         <TabsList className="grid h-auto w-full grid-cols-2 gap-1 lg:grid-cols-4">
-          <TabsTrigger value="invitation">邀请与设置</TabsTrigger>
+          <TabsTrigger value="invitation">邀约与设置</TabsTrigger>
           <TabsTrigger value="slots">档期管理</TabsTrigger>
           <TabsTrigger value="booking">预约履约</TabsTrigger>
           <TabsTrigger value="report">真人报告</TabsTrigger>
@@ -186,11 +206,14 @@ export function HrHumanInterviewWorkspace({ controller }: { controller: Controll
           <InvitationSettings
             workspace={workspace}
             processing={processing}
+            missingToSend={missingToSend}
             onCreate={() => void createInvitation()}
+            onSend={() => void sendInvitation()}
+            onResend={() => void resendInvitation()}
             onRevoke={() =>
               ask({
-                title: "撤回当前预约链接？",
-                description: "撤回后候选人将无法继续通过该链接选时。已确认的预约记录不会被删除。",
+                title: "撤回当前预约邀约？",
+                description: "撤回后候选人无法继续通过该入口选时。已确认预约不会被删除。",
                 confirmLabel: "确认撤回",
                 destructive: true,
                 onConfirm: () => void revokeInvitation(),
@@ -218,8 +241,23 @@ export function HrHumanInterviewWorkspace({ controller }: { controller: Controll
           <BookingPanel
             bookings={workspace.bookings}
             processing={processing}
+            maintenanceMessage={maintenanceMessage}
             onReport={setReportBooking}
             onReschedule={setRescheduleTarget}
+            onRequestPending={setPendingTarget}
+            onCompletePending={setCompletionTarget}
+            onExpirePending={async () => {
+              const result = await expirePendingConfirmations();
+              if (result) {
+                setMaintenanceMessage(`释放超时待确认：处理 ${result.processedCount} 条`);
+              }
+            }}
+            onCreateReminders={async () => {
+              const result = await createBookingReminders();
+              if (result) {
+                setMaintenanceMessage(`生成 24 小时提醒：处理 ${result.processedCount} 条`);
+              }
+            }}
             onStatus={(bookingId, status) =>
               ask({
                 title: `确认标记为“${bookingStatusLabel(status)}”？`,
@@ -271,6 +309,30 @@ export function HrHumanInterviewWorkspace({ controller }: { controller: Controll
           onSave={(input) => void saveReport(input)}
         />
       )}
+      {pendingTarget && (
+        <PendingConfirmationDialog
+          booking={pendingTarget}
+          open={Boolean(pendingTarget)}
+          processing={processing}
+          onOpenChange={(open) => !open && setPendingTarget(null)}
+          onConfirm={(reason) => {
+            void requestPendingConfirmation({ bookingId: pendingTarget.id, reason });
+            setPendingTarget(null);
+          }}
+        />
+      )}
+      {completionTarget && (
+        <CompletePendingConfirmationDialog
+          booking={completionTarget}
+          open={Boolean(completionTarget)}
+          processing={processing}
+          onOpenChange={(open) => !open && setCompletionTarget(null)}
+          onConfirm={(input) => {
+            void completePendingConfirmation({ bookingId: completionTarget.id, ...input });
+            setCompletionTarget(null);
+          }}
+        />
+      )}
       {rescheduleTarget && (
         <RescheduleDialog
           booking={rescheduleTarget}
@@ -305,13 +367,19 @@ function Metric({ label, value }: { label: string; value: string }) {
 function InvitationSettings({
   workspace,
   processing,
+  missingToSend,
   onCreate,
+  onSend,
+  onResend,
   onRevoke,
   onSave,
 }: {
   workspace: Workspace;
   processing: boolean;
+  missingToSend: string[];
   onCreate: () => void;
+  onSend: () => void;
+  onResend: () => void;
   onRevoke: () => void;
   onSave: (input: {
     applicationId: string;
@@ -319,6 +387,7 @@ function InvitationSettings({
     interviewType: HumanInterviewType;
     meetingLink: string;
     locationTemplate: string;
+    arrivalInstructions?: string;
   }) => void;
 }) {
   const invitation = workspace.invitation;
@@ -330,22 +399,33 @@ function InvitationSettings({
   );
   const [meetingLink, setMeetingLink] = useState(invitation?.meetingLink ?? "");
   const [locationTemplate, setLocationTemplate] = useState(invitation?.locationTemplate ?? "");
+  const [arrivalInstructions, setArrivalInstructions] = useState(
+    invitation?.arrivalInstructions ?? "",
+  );
   const link = invitation ? humanInterviewService.invitationLink(invitation.token) : "";
   const missingVenue = interviewType === "online" ? !meetingLink.trim() : !locationTemplate.trim();
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(link);
-      toast.success("预约链接已复制");
+      toast.success("候选人链接已复制");
     } catch {
       toast.error("复制失败，请手动复制链接");
     }
   };
+  const savePayload = {
+    applicationId: workspace.applicationId,
+    primaryInterviewerId,
+    interviewType,
+    meetingLink,
+    locationTemplate,
+    arrivalInstructions,
+  };
+
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       <section className="rounded-2xl border border-border bg-background p-5">
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>主面试官</Label>
+          <Field label="主面试官">
             <Select value={primaryInterviewerId} onValueChange={setPrimaryInterviewerId}>
               <SelectTrigger className="rounded-2xl">
                 <SelectValue placeholder="选择主面试官" />
@@ -358,9 +438,8 @@ function InvitationSettings({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>面试类型</Label>
+          </Field>
+          <Field label="面试类型">
             <Select
               value={interviewType}
               onValueChange={(value) => setInterviewType(value as HumanInterviewType)}
@@ -373,70 +452,89 @@ function InvitationSettings({
                 <SelectItem value="offline">线下面试</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>会议链接</Label>
+          </Field>
+          <Field label="会议链接">
             <Input
               className="rounded-2xl"
               placeholder="https://meet.example.com/..."
               value={meetingLink}
               onChange={(event) => setMeetingLink(event.target.value)}
             />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>线下面试地点模板</Label>
-            <Textarea
-              className="min-h-24 rounded-2xl"
-              placeholder="例如：上海市浦东新区张江路 88 号 12F 观澜会议室"
+          </Field>
+          <Field label="线下面试地点">
+            <Input
+              className="rounded-2xl"
+              placeholder="上海市浦东新区张江路 88 号..."
               value={locationTemplate}
               onChange={(event) => setLocationTemplate(event.target.value)}
+            />
+          </Field>
+          <div className="space-y-2 md:col-span-2">
+            <Label>到场说明</Label>
+            <Textarea
+              className="min-h-24 rounded-2xl"
+              value={arrivalInstructions}
+              onChange={(event) => setArrivalInstructions(event.target.value)}
             />
           </div>
         </div>
         {missingVenue && (
           <p className="mt-3 text-xs text-amber-700">
             请补齐{interviewType === "online" ? "会议链接" : "线下面试地点"}
-            ，候选人确认后会看到该信息。
+            ，候选人预约确认后会看到该信息。
           </p>
         )}
         <div className="mt-5 flex flex-wrap gap-2">
           <Button
             className="rounded-full"
             disabled={processing || !primaryInterviewerId || missingVenue}
-            onClick={() =>
-              onSave({
-                applicationId: workspace.applicationId,
-                primaryInterviewerId,
-                interviewType,
-                meetingLink,
-                locationTemplate,
-              })
-            }
+            onClick={() => onSave(savePayload)}
           >
-            {processing ? <Loader2 className="animate-spin" /> : <Save />} 保存预约设置
+            {processing ? <Loader2 className="animate-spin" /> : <Save />} 保存草稿
           </Button>
-          <Button
-            variant="outline"
-            className="rounded-full"
-            disabled={processing}
-            onClick={onCreate}
-          >
-            <Link2 /> {invitation ? "重新生成链接" : "生成预约链接"}
-          </Button>
-          {invitation && invitation.status === "active" && (
+          {!invitation && (
+            <Button
+              variant="outline"
+              className="rounded-full"
+              disabled={processing}
+              onClick={onCreate}
+            >
+              <Link2 /> 创建邀约草稿
+            </Button>
+          )}
+          {invitation && invitation.status !== "active" && invitation.status !== "booked" && (
+            <Button
+              className="rounded-full"
+              disabled={processing || Boolean(missingToSend.length)}
+              onClick={onSend}
+            >
+              <Send /> 发送预约邀约
+            </Button>
+          )}
+          {invitation && (invitation.status === "active" || invitation.status === "booked") && (
+            <Button
+              variant={invitation.needsResend ? "default" : "outline"}
+              className="rounded-full"
+              disabled={processing || Boolean(missingToSend.length)}
+              onClick={onResend}
+            >
+              <Send /> {invitation.needsResend ? "重发更新通知" : "重发邀约"}
+            </Button>
+          )}
+          {invitation && invitation.status !== "revoked" && (
             <Button
               variant="outline"
               className="rounded-full"
               disabled={processing}
               onClick={onRevoke}
             >
-              <XCircle /> 撤回链接
+              <XCircle /> 撤回邀约
             </Button>
           )}
         </div>
       </section>
       <aside className="rounded-2xl border border-border bg-background p-5">
-        <h2 className="font-semibold">邀请状态</h2>
+        <h2 className="font-semibold">邀约状态</h2>
         {invitation ? (
           <div className="mt-4 space-y-1">
             <TimelineRow label="状态" value={invitationStatusLabel(invitation.status)} />
@@ -446,16 +544,25 @@ function InvitationSettings({
               value={`${invitation.candidate.name} · ${invitation.candidate.email}`}
             />
             <TimelineRow
+              label="最近发送"
+              value={invitation.lastSentAt ? formatDateTime(invitation.lastSentAt) : "尚未发送"}
+            />
+            <TimelineRow
               label="预约入口"
               value={<span className="break-all text-muted-foreground">{link}</span>}
             />
+            {missingToSend.length > 0 && (
+              <div className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-800">
+                发送前需要补齐：{missingToSend.join("、")}
+              </div>
+            )}
             <Button variant="outline" className="mt-4 w-full rounded-full" onClick={copyLink}>
               <ClipboardCopy /> 复制候选人链接
             </Button>
           </div>
         ) : (
           <div className="mt-4 rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground">
-            生成绑定申请的预约链接后，候选人才能进入选时流程。
+            保存设置后创建邀约草稿，发送后候选人会收到站内通知。
           </div>
         )}
       </aside>
@@ -480,10 +587,14 @@ function SlotPanel({
         <div>
           <h2 className="font-semibold">一次性可预约时间段</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            首期按一次性时间段管理，候选人确认后该时间会被占用。
+            首期按 HR 手动时间段管理，候选人确认后该时间会被占用。
           </p>
         </div>
-        <Button className="rounded-full" onClick={onAdd} disabled={processing}>
+        <Button
+          className="rounded-full"
+          onClick={onAdd}
+          disabled={processing || !workspace.invitation}
+        >
           <CalendarPlus /> 添加时间段
         </Button>
       </div>
@@ -539,7 +650,7 @@ function SlotPanel({
         </div>
       ) : (
         <div className="mt-5 rounded-3xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          暂无可预约时间段。添加至少一个时间段后，候选人才能完成选时。
+          暂无可预约时间段。添加至少一个时间段后才能发送邀约。
         </div>
       )}
     </>
@@ -549,24 +660,74 @@ function SlotPanel({
 function BookingPanel({
   bookings,
   processing,
+  maintenanceMessage,
   onStatus,
   onReport,
   onReschedule,
+  onRequestPending,
+  onCompletePending,
+  onExpirePending,
+  onCreateReminders,
 }: {
   bookings: HumanInterviewBooking[];
   processing: boolean;
+  maintenanceMessage: string | null;
   onStatus: (bookingId: string, status: HumanInterviewBookingStatus) => void;
   onReport: (booking: HumanInterviewBooking) => void;
   onReschedule: (booking: HumanInterviewBooking) => void;
+  onRequestPending: (booking: HumanInterviewBooking) => void;
+  onCompletePending: (booking: HumanInterviewBooking) => void;
+  onExpirePending: () => void;
+  onCreateReminders: () => void;
 }) {
+  const maintenancePanel = (
+    <section className="rounded-2xl border border-border bg-background p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">演示维护</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            真实系统仍由后端维护接口执行，这里只用于本地演示手动触发。
+          </p>
+          {maintenanceMessage && (
+            <p className="mt-2 text-xs text-muted-foreground">{maintenanceMessage}</p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            disabled={processing}
+            onClick={onExpirePending}
+          >
+            <Wrench /> 释放超时待确认
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            disabled={processing}
+            onClick={onCreateReminders}
+          >
+            <Bell /> 生成 24 小时提醒
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+
   if (!bookings.length)
     return (
-      <div className="rounded-3xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-        候选人确认时间后，这里会显示预约详情、取消/改期入口和履约状态操作。
+      <div className="space-y-4">
+        {maintenancePanel}
+        <div className="rounded-3xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          候选人确认时间后，这里会显示预约详情、取消/改期入口和履约状态操作。
+        </div>
       </div>
     );
   return (
     <div className="space-y-4">
+      {maintenancePanel}
       {bookings.map((booking) => {
         const terminal = [
           "cancelled",
@@ -575,6 +736,8 @@ function BookingPanel({
           "interviewer_no_show",
           "expired",
         ].includes(booking.status);
+        const pending = booking.status === "pending_confirmation";
+        const locked = terminal || pending;
         return (
           <article key={booking.id} className="rounded-2xl border border-border bg-background p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -594,16 +757,54 @@ function BookingPanel({
                   {booking.meetingLink || booking.location || "会议或地点信息待补全"}
                 </p>
               </div>
-              <Button variant="outline" className="rounded-full" onClick={() => onReport(booking)}>
+              <Button
+                variant="outline"
+                className="rounded-full"
+                disabled={processing || pending || booking.status === "expired"}
+                onClick={() => onReport(booking)}
+              >
                 填写真人报告
               </Button>
             </div>
+            {pending && (
+              <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-900">
+                <div className="flex items-center gap-2 font-medium">
+                  <AlertTriangle className="h-4 w-4" /> 履约信息待补全确认
+                </div>
+                <p className="mt-2 leading-relaxed">
+                  原因：{booking.pendingConfirmationReason || "未填写原因"}；截止：
+                  {formatDateTime(booking.pendingConfirmationExpiresAt)}
+                  。待确认期间仍占用原时间段，不能改期、取消、标记履约或填写报告。
+                </p>
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap gap-2">
+              {booking.status === "confirmed" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  disabled={processing}
+                  onClick={() => onRequestPending(booking)}
+                >
+                  <AlertTriangle /> 置为待确认
+                </Button>
+              )}
+              {pending && (
+                <Button
+                  size="sm"
+                  className="rounded-full"
+                  disabled={processing}
+                  onClick={() => onCompletePending(booking)}
+                >
+                  <CheckCircle2 /> 补齐并恢复确认
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
                 className="rounded-full"
-                disabled={processing || terminal}
+                disabled={processing || locked}
                 onClick={() => onReschedule(booking)}
               >
                 <RotateCcw /> 改期
@@ -612,7 +813,7 @@ function BookingPanel({
                 variant="outline"
                 size="sm"
                 className="rounded-full"
-                disabled={processing || terminal}
+                disabled={processing || locked}
                 onClick={() => onStatus(booking.id, "completed")}
               >
                 <CheckCircle2 /> 标记完成
@@ -621,7 +822,7 @@ function BookingPanel({
                 variant="outline"
                 size="sm"
                 className="rounded-full"
-                disabled={processing || terminal}
+                disabled={processing || locked}
                 onClick={() => onStatus(booking.id, "candidate_no_show")}
               >
                 <UserX /> 候选人未到
@@ -630,7 +831,7 @@ function BookingPanel({
                 variant="outline"
                 size="sm"
                 className="rounded-full"
-                disabled={processing || terminal}
+                disabled={processing || locked}
                 onClick={() => onStatus(booking.id, "interviewer_no_show")}
               >
                 <UserCheck /> 面试官未到
@@ -639,7 +840,7 @@ function BookingPanel({
                 variant="outline"
                 size="sm"
                 className="rounded-full"
-                disabled={processing || terminal}
+                disabled={processing || locked}
                 onClick={() => onStatus(booking.id, "cancelled")}
               >
                 <XCircle /> 取消预约
@@ -649,6 +850,117 @@ function BookingPanel({
         );
       })}
     </div>
+  );
+}
+
+function PendingConfirmationDialog({
+  booking,
+  open,
+  processing,
+  onOpenChange,
+  onConfirm,
+}: {
+  booking: HumanInterviewBooking;
+  open: boolean;
+  processing: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState("会议或地点信息需要补齐");
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>置为待补全确认</DialogTitle>
+          <DialogDescription>
+            {booking.candidate.name} · {formatDateTime(booking.startAt)}
+            。该状态会保留原时间占用，并要求 HR 在 6 小时内补齐履约信息。
+          </DialogDescription>
+        </DialogHeader>
+        <Field label="原因">
+          <Textarea
+            className="min-h-24"
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </Field>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button disabled={processing || !reason.trim()} onClick={() => onConfirm(reason)}>
+            置为待确认
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CompletePendingConfirmationDialog({
+  booking,
+  open,
+  processing,
+  onOpenChange,
+  onConfirm,
+}: {
+  booking: HumanInterviewBooking;
+  open: boolean;
+  processing: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (input: {
+    meetingLink?: string;
+    location?: string;
+    arrivalInstructions?: string;
+  }) => void;
+}) {
+  const [meetingLink, setMeetingLink] = useState(booking.meetingLink ?? "");
+  const [location, setLocation] = useState(booking.location ?? "");
+  const [arrivalInstructions, setArrivalInstructions] = useState(booking.arrivalInstructions ?? "");
+  const online = booking.interviewType === "online";
+  const canConfirm = online ? Boolean(meetingLink.trim()) : Boolean(location.trim());
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>补齐并恢复确认</DialogTitle>
+          <DialogDescription>
+            补齐{online ? "会议链接" : "线下面试地点"}后，预约会从待补全确认恢复为已预约。
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4">
+          {online ? (
+            <Field label="会议链接">
+              <Input value={meetingLink} onChange={(event) => setMeetingLink(event.target.value)} />
+            </Field>
+          ) : (
+            <>
+              <Field label="线下面试地点">
+                <Input value={location} onChange={(event) => setLocation(event.target.value)} />
+              </Field>
+              <Field label="到场说明">
+                <Textarea
+                  className="min-h-24"
+                  value={arrivalInstructions}
+                  onChange={(event) => setArrivalInstructions(event.target.value)}
+                />
+              </Field>
+            </>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button
+            disabled={processing || !canConfirm}
+            onClick={() => onConfirm({ meetingLink, location, arrivalInstructions })}
+          >
+            恢复确认
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -684,22 +996,20 @@ function AddSlotDialog({
           <DialogDescription>时间段会绑定当前主面试官，候选人确认后立即占用。</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>开始时间</Label>
+          <Field label="开始时间">
             <Input
               type="datetime-local"
               value={startAt}
               onChange={(event) => setStartAt(event.target.value)}
             />
-          </div>
-          <div className="space-y-2">
-            <Label>结束时间</Label>
+          </Field>
+          <Field label="结束时间">
             <Input
               type="datetime-local"
               value={endAt}
               onChange={(event) => setEndAt(event.target.value)}
             />
-          </div>
+          </Field>
         </div>
         {invalidRange && <p className="text-sm text-red-600">结束时间必须晚于开始时间。</p>}
         <DialogFooter>
@@ -746,6 +1056,7 @@ function ReportReview({
         预约确认并完成面试后，可在这里审核发布真人面试报告。
       </div>
     );
+  const reportLocked = booking.status === "pending_confirmation" || booking.status === "expired";
   return (
     <section className="rounded-2xl border border-border bg-background p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -772,14 +1083,24 @@ function ReportReview({
               求职者摘要：{report.candidateSummary}
             </p>
           )}
+          {reportLocked && (
+            <p className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-800">
+              当前预约状态不能编辑或发布真人报告。
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="rounded-full" onClick={() => onEdit(booking)}>
+          <Button
+            variant="outline"
+            className="rounded-full"
+            disabled={processing || reportLocked}
+            onClick={() => onEdit(booking)}
+          >
             <RotateCcw /> 编辑报告
           </Button>
           <Button
             className="rounded-full"
-            disabled={processing || !report || report.status === "published"}
+            disabled={processing || reportLocked || !report || report.status === "published"}
             onClick={() => onPublish(booking.id)}
           >
             <Send /> 审核发布

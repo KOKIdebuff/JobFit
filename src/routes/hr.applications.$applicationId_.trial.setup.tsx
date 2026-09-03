@@ -42,7 +42,7 @@ function TrialSetupPage() {
               <a href={`/hr/applications/${applicationId}/trial/result`}>查看任务结果</a>
             </Button>
             <Button variant="outline" className="rounded-full" asChild>
-              <a href={`/hr/applications/${applicationId}/human-interview`}>真人面试预约</a>
+              <a href={`/human-interviews/hr/applications/${applicationId}`}>真人面试预约</a>
             </Button>
           </div>
         </div>

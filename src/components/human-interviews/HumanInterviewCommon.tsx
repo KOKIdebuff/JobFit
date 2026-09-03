@@ -1,4 +1,4 @@
-import {
+﻿import {
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
@@ -48,8 +48,8 @@ export function typeLabel(type: HumanInterviewType) {
 export function bookingStatusLabel(status: HumanInterviewBookingStatus) {
   const labels: Record<HumanInterviewBookingStatus, string> = {
     draft: "草稿",
-    pending_confirmation: "待确认",
-    confirmed: "已确认",
+    pending_confirmation: "待补全确认",
+    confirmed: "已预约",
     rescheduled: "已改期",
     cancelled: "已取消",
     completed: "已完成",
@@ -62,8 +62,8 @@ export function bookingStatusLabel(status: HumanInterviewBookingStatus) {
 
 export function invitationStatusLabel(status: HumanInterviewInvitationStatus) {
   const labels: Record<HumanInterviewInvitationStatus, string> = {
-    draft: "待生成",
-    active: "可预约",
+    draft: "草稿待发送",
+    active: "已发送",
     revoked: "已撤回",
     expired: "已过期",
     booked: "已预约",

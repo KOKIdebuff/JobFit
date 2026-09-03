@@ -1,6 +1,15 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+﻿import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, LayoutGrid, LogOut, Menu, ShieldCheck, UserCircle, X } from "lucide-react";
+import {
+  Bell,
+  ChevronDown,
+  LayoutGrid,
+  LogOut,
+  Menu,
+  ShieldCheck,
+  UserCircle,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -16,7 +25,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authQueryKey, useCurrentUser } from "@/hooks/use-current-user";
+import { useNotifications } from "@/hooks/use-notifications";
 import { authService } from "@/lib/auth/service";
+import {
+  HUMAN_INTERVIEW_DEMO_APPLICATION_ID,
+  HUMAN_INTERVIEW_DEMO_TOKEN,
+} from "@/lib/human-interviews/fallback";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -24,6 +38,7 @@ const NAV_LINKS = [
   { to: "/resume", label: "简历管理" },
   { to: "/match", label: "岗位匹配" },
   { to: "/interview", label: "面试验证" },
+  { to: "/human-interviews", label: "真人面试预约" },
   { to: "/hr", label: "HR 招聘" },
 ] as const;
 
@@ -33,6 +48,11 @@ const HR_NAV_LINKS = [
     to: "/hr/jobs/$jobId/candidates",
     params: { jobId: "job_ai_pm_campus_001" },
     label: "候选人列表",
+  },
+  {
+    to: "/human-interviews/hr/applications/$applicationId",
+    params: { applicationId: HUMAN_INTERVIEW_DEMO_APPLICATION_ID },
+    label: "真人面试预约",
   },
   { to: "/hr/agent-runs", label: "多 Agent 协作" },
   {
@@ -58,6 +78,24 @@ const FUNCTION_GROUPS = [
       { to: "/match", label: "岗位匹配" },
       { to: "/interview", label: "面试验证" },
       { to: "/network", label: "职业人脉" },
+      { to: "/notifications", label: "站内通知" },
+    ],
+  },
+  {
+    label: "真人面试预约",
+    links: [
+      { to: "/human-interviews", label: "预约总入口" },
+      {
+        to: "/human-interviews/hr/applications/$applicationId",
+        params: { applicationId: HUMAN_INTERVIEW_DEMO_APPLICATION_ID },
+        label: "HR 预约管理",
+      },
+      { to: "/human-interviews/candidate", label: "我的真人面试" },
+      {
+        to: "/human-interviews/invitations/$token",
+        params: { token: HUMAN_INTERVIEW_DEMO_TOKEN },
+        label: "候选人邀约入口",
+      },
     ],
   },
   {
@@ -93,6 +131,7 @@ const FUNCTION_GROUPS = [
 export function Nav() {
   const [open, setOpen] = useState(false);
   const { user, isLoading } = useCurrentUser();
+  const { data: notifications } = useNotifications();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
@@ -137,11 +176,24 @@ export function Nav() {
               </Link>
             ),
           )}
+          <Link
+            to="/notifications"
+            className="relative rounded-full px-3.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            activeProps={{
+              className:
+                "relative rounded-full px-3.5 py-2 text-sm text-foreground bg-secondary font-medium",
+            }}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <Bell className="h-4 w-4" /> 通知
+            </span>
+            {notifications.unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-blue-500" />
+            )}
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-sm text-muted-foreground outline-none transition-colors hover:bg-secondary hover:text-foreground data-[state=open]:bg-secondary data-[state=open]:text-foreground">
-              <LayoutGrid className="h-4 w-4" />
-              全部功能
-              <ChevronDown className="h-3.5 w-3.5" />
+              <LayoutGrid className="h-4 w-4" /> 全部功能 <ChevronDown className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
               {FUNCTION_GROUPS.map((group, groupIndex) => (
