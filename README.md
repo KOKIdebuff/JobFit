@@ -6,6 +6,16 @@ HireLink 面向大学生求职者与企业招聘人员，将简历解析、岗�
 
 HireLink 不替代 HR 作出录用或淘汰决定。岗位画像、面试内容、报告发布和招聘决策等关键环节均保留人工确认，重要结论尽量关联原始证据。
 
+## 当前代码实现状态
+
+当前仓库仍处于演示 MVP 的代码落地过程，不代表已经完成真实端到端招聘闭环。当前状态的唯一事实源是 [Implementation Status](./docs/implementation-status.md)，旧的 [Code-Doc Drift Audit](./docs/code-doc-drift-audit.md) 仅作为历史审计记录保留。
+
+- **Product vision**：HireLink 的产品目标是跑通“简历 -> 画像 -> 匹配 -> 面试/试炼 -> 证据链报告 -> HR 人工决策 -> 求职者反馈”的招聘辅助闭环。
+- **Currently implemented**：FastAPI 应用骨架、统一响应与错误处理、SQLite/Alembic、注册、登录、退出、`/auth/me`、HttpOnly Cookie、演示账号自动修复；真人面试预约和站内通知已有后端基础闭环。
+- **Interactive frontend demo**：简历管理、岗位匹配、面试验证、AI 内推网络、真人面试预约和站内通知等页面可交互，但多处仍依赖 `localStorage`、静态数据或 fallback 服务。
+- **Mock/preloaded capabilities**：核心招聘链路当前主要通过 `demo_data` 和预置 payload 展示，岗位、简历、匹配、试炼、报告和 `ai_runs` 多处来源为 `mock`，不能视为真实模型或真实业务生成。
+- **Planned capabilities**：真实模型 Provider、真实 PDF/DOCX 上传解析、独立职业画像 API、完整面试会话后端、固定 Agent Orchestrator、动态追问、音视频回放、可信面试、能力护照、企业人才运营、AI 内推网络和 ATS 对接仍属于规划或未完整接入。
+
 ## 核心问题与产品价值
 
 传统招聘流程中，简历、岗位要求、面试回答和评价报告通常彼此割裂：
@@ -162,6 +172,8 @@ http://127.0.0.1:5173
 
 ### 后端
 
+登录和注册依赖 FastAPI 后端。只启动前端 `http://127.0.0.1:5173` 时，认证请求会因为无法连接 `http://127.0.0.1:8000` 而失败。
+
 进入后端目录并安装锁定依赖：
 
 ```bash
@@ -183,10 +195,34 @@ macOS / Linux：
 cp .env.example .env
 ```
 
+首次启动或迁移变更后，创建 SQLite 目录并执行迁移：
+
+PowerShell：
+
+```powershell
+New-Item -ItemType Directory -Force data
+uv run alembic upgrade head
+```
+
+macOS / Linux：
+
+```bash
+mkdir -p data
+uv run alembic upgrade head
+```
+
 启动 API：
 
 ```bash
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+如果当前机器没有全局 `uv`，但仓库已有 `backend/.venv`，可以在 `backend/` 目录使用备用命令：
+
+```powershell
+New-Item -ItemType Directory -Force data
+.\.venv\Scripts\alembic.exe upgrade head
+.\.venv\Scripts\uvicorn.exe app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 默认地址：
@@ -241,4 +277,5 @@ uv run pytest
 - [产品路线图](./docs/roadmap.md)
 - [技术架构文档](./docs/architecture.md)
 - [作品说明文档](./docs/HireLink-AI大赛作品说明文档.md)
+- [当前代码实现状态](./docs/implementation-status.md)
 - [P0 实施基线](./docs/p0-implementation-baseline.md)

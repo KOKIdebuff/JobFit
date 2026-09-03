@@ -1,4 +1,5 @@
 # 《HireLink——作品说明文档》
+> 实现边界提示（2026-06-24）：本文用于比赛作品叙事，包含产品目标、演示能力和后续规划。当前代码事实以 `docs/implementation-status.md` 为准，`docs/code-doc-drift-audit.md` 仅作为历史审计记录；其中核心招聘闭环仍有 Mock/demo 能力，真人面试预约后端已实现但前端仍主要是 localStorage 演示服务。
 
 ## 1. 作品简介
 

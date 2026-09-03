@@ -10,7 +10,17 @@ HireLink 是一个面向比赛 / 演示 MVP 的 AI 招聘能力验证系统。�
 
 第一版优先覆盖 1-2 类岗位，使用脱敏真实数据和预置演示数据降低现场失败风险。系统要能讲清楚 AI 如何辅助招聘判断，但最终录用、淘汰和是否进入真人面试必须由 HR 作出。
 
-## 2. 开发目标
+## 2. 架构阅读规则
+
+本文同时记录当前架构和目标架构：
+
+- **Current / As-Is Architecture**：只描述当前代码已经存在的路由、模块、模型、前端调用链和测试证据。
+- **Target / To-Be Architecture**：描述 P0/P1/P2 目标设计，不代表当前已经运行。
+- **Planned Extensions**：描述后续可扩展方向，只有进入代码并在 [Implementation Status](./implementation-status.md) 有证据后，才能升级为 Current。
+
+当前代码实现状态的唯一事实源是 [Implementation Status](./implementation-status.md)。
+
+## 3. 开发目标
 
 - 在 3-4 周个人开发周期内完成可稳定演示的 MVP。
 - 保留现有 React / TanStack Start / Tailwind CSS 前端，不做大规模重写。
@@ -19,13 +29,27 @@ HireLink 是一个面向比赛 / 演示 MVP 的 AI 招聘能力验证系统。�
 - 使用国内稳定云端模型 API，后端通过适配层封装，避免供应商锁定。
 - P0 不录制、不上传、不保存面试音视频，降低隐私、合规和存储成本。
 
-## 3. 当前阶段
+## 4. 当前阶段
 
 当前阶段为 MVP / P0 架构落地阶段，优先保证完整业务闭环、稳定演示和低成本交付。
 
 本阶段不追求极端高并发、完整企业权限、复杂监控、长期音视频复查、可信面试或 ATS 集成。P1 / P2 能力只在数据结构和接口边界上保留扩展空间。
 
-## 4. 我的系统设计偏好摘要
+### 4.1 Current / As-Is Architecture（当前实现快照）
+
+当前代码实现与目标架构存在阶段差异；以下只记录当前代码事实：
+
+| 领域 | 当前代码事实 |
+|---|---|
+| 后端基础设施 | FastAPI app factory、统一响应、错误处理、请求 ID、中间件、配置、SQLite/Alembic 已落地。 |
+| 认证 | `/api/v1/auth/register`、`/login`、`/logout`、`/me` 已实现，前端 `authService` 已接入。 |
+| 核心招聘闭环 | `demo_data` 模块当前承载岗位、简历、申请、候选人、试炼、报告、决策和 ai_runs 的演示 API；多数字段为 mock/demo payload。 |
+| 简历/JD/画像/匹配/报告 | 有部分表或 demo API，但未形成真实模型调用、真实文件上传解析、独立画像 API、完整确定性匹配服务和真实报告生成闭环。 |
+| 真人面试预约 | `human_interviews` 后端 API、表、服务和测试已较完整；前端页面组存在，但服务层仍主要使用 localStorage/fallback，未接后端 API。 |
+| 通知 | 后端 `notifications` API 已实现；前端通知页当前使用 localStorage 服务。 |
+| Agent | `ai_runs` 表和展示接口存在；当前运行记录主要来自 mock/demo 操作，不是完整固定 Orchestrator。 |
+
+## 5. 我的系统设计偏好摘要
 
 - 稳定、清晰、容易开发优先。
 - 不使用 Kubernetes、复杂微服务和大型分布式架构。
@@ -39,22 +63,22 @@ HireLink 是一个面向比赛 / 演示 MVP 的 AI 招聘能力验证系统。�
 - 公开 HTTPS 链接外加临时访问密码，业务页面仍需要系统登录。
 - 每月基础成本目标控制在 100 元以内。
 
-## 5. 专业架构约束翻译
+## 6. 专业架构约束翻译
 
 | 架构维度 | 专业表达 | 通俗解释 |
 |---|---|---|
 | 架构风格 | 模块化单体 | 先用一个后端项目承载多个业务模块，不拆复杂微服务。 |
 | 前后端关系 | REST API 解耦 | 前端负责页面，后端负责数据、权限和 AI 调用，双方通过接口协作。 |
-| Agent 编排方式 | 固定 Orchestrator 工作流 | 系统按预设步骤调用不同 Agent，不让 AI 自由决定业务流程。 |
+| Agent 编排方式 | Target / To-Be：固定 Orchestrator 工作流 | 当前代码只有 mock `ai_runs` 展示记录；真实固定 Orchestrator 尚未落地。 |
 | 数据一致性 | 单库事务优先 | 核心数据先写进同一个数据库，减少多系统同步出错。 |
 | 实时性要求 | 非强实时 | AI 报告可以等待几十秒，但页面必须显示进度和失败原因。 |
 | 可用性要求 | 演示优先兜底 | AI、ASR 或网络失败时，可以切换预置数据继续演示。 |
 | 安全权限 | 简化 RBAC | 不同角色能访问什么由后端判断，不能只靠前端隐藏按钮。 |
-| 部署方式 | Docker 单机部署 | 把运行环境打包到一台云服务器，方便迁移、重启和回滚。 |
+| 部署方式 | Target / To-Be：Docker 单机部署 | 当前仓库未提供 Docker Compose；本地仍分别启动前端和后端。 |
 | 成本约束 | 轻量云服务器 + 按量模型 API | 服务器、存储和模型调用都要克制，优先满足演示。 |
 | 可扩展性边界 | 可替换适配层 | 先预留 PostgreSQL、任务队列、对象存储和多模型适配，但 MVP 不先上。 |
 
-## 6. 技术栈决策
+## 7. 技术栈决策
 
 | 层级 | MVP 选择 | 平衡级选择 | 选择原因 | 升级条件 |
 |---|---|---|---|---|
@@ -64,14 +88,16 @@ HireLink 是一个面向比赛 / 演示 MVP 的 AI 招聘能力验证系统。�
 | 数据库 | SQLite | PostgreSQL | 成本低、易部署、易重置 | 进入真实多人试用 |
 | 认证 | 单短期 JWT + HttpOnly Cookie + 角色权限 | Access Token + Refresh Token + 审计日志 | 满足演示账号和简化注册，避免 P0 引入续期链路 | 进入持续使用或真实企业试点 |
 | 文件存储 | 临时本地文件 + 可选保留原文件 + 结构化文本入库 | 对象存储 + 签名 URL | 默认不保存原文件，用户显式选择后才保留，兼顾隐私与复查需求 | 需要真实多人试用或跨节点文件访问 |
-| 大模型 | 国内稳定云端模型 API | 多模型适配 + 备用模型 | 轻量服务器不适合跑本地模型 | 主模型不稳定或效果不足 |
+| 大模型 | Target / To-Be：国内稳定云端模型 API | 多模型适配 + 备用模型 | 当前未发现真实 Provider 接入，代码以 mock 为主 | 主模型不稳定或效果不足 |
 | ASR | 浏览器 Web Speech API + 手动文字稿 | 云 ASR / Whisper 服务 | 降低后端复杂度和成本 | 需要更稳定转写质量 |
 | 虚拟面试官 | P0 不依赖 | P1 云 TTS + 轻量形象；P2 沉浸式交互 | 当前核心是能力验证，不由呈现层承担题目生成或评价 | 需要增强演示沉浸感 |
-| Agent | 手写固定工作流 | LangGraph / 状态机 | 可控、易解释、低风险 | Agent 分支和异常处理明显增多 |
-| 部署 | 单机 Docker | 分离部署 + 监控告警 | MVP 更稳更快 | 真实用户增长 |
+| Agent | Target / To-Be：手写固定工作流 | LangGraph / 状态机 | 当前未发现完整固定 Orchestrator，已有 `ai_runs` mock 记录基础 | Agent 分支和异常处理明显增多 |
+| 部署 | Target / To-Be：单机 Docker | 分离部署 + 监控告警 | 当前仓库未提供 Docker Compose | 真实用户增长 |
 | 日志 | 后端结构化日志 + AI 调用记录 | Sentry / 云日志 | 够用且低成本 | 线上错误排查压力增加 |
 
-## 7. 系统架构图
+## 8. Target / To-Be 系统架构图
+
+> 下图是目标架构，不是当前已完整运行的 As-Is 架构。Current / As-Is 以第 4.1 节和 [Implementation Status](./implementation-status.md) 为准。
 
 ```mermaid
 flowchart TD
@@ -99,9 +125,9 @@ flowchart TD
   API --> DEMO["预置演示数据 / 一键重置"]
 ```
 
-## 8. 模块设计
+## 9. 模块设计
 
-### 8.1 前端模块
+### 9.1 前端模块
 
 - 登录与演示入口：临时访问密码、登录、简化注册、演示账号入口。
 - 求职者端：简历上传、职业画像、轻量面试、岗位能力试炼提交、求职者成长中心。
@@ -109,8 +135,18 @@ flowchart TD
 - 演示数据维护：通过受控重置脚本和预置数据完成，不提供独立后台页面。
 - Agent 展示：展示固定工作流节点、输入摘要、输出摘要、状态和 fallback 状态。
 
-### 8.2 后端模块
+### 9.2 后端模块
 
+> Current / As-Is：当前实际业务 API 主要集中在 `auth_users`、`demo_data`、`human_interviews` 和 `notifications`。下列目标模块只有在 [Implementation Status](./implementation-status.md) 中有代码证据时，才能按当前实现描述。
+
+| 模块 | 当前实现状态 |
+|---|---|
+| `auth_users` | 已实现用户、组织、注册登录退出、当前用户、demo 账号修复。 |
+| `demo_data` | 承载当前核心招聘演示 API，写入 jobs、resumes、applications、match_results、trial、reports、decisions 和 ai_runs，数据源主要为 mock。 |
+| `human_interviews` | 已实现真人面试预约后端基础闭环，包括邀约、档期、预约、取消、改期、pending confirmation、提醒维护、真人报告、审计和通知。 |
+| `notifications` | 已实现通知列表、单条已读、全部已读的后端接口。 |
+| `resumes`、`jobs`、`applications_matches`、`trials`、`reports`、`ai_runs` | 主要已有模型，部分由 `demo_data` 服务读写；尚未全部拥有独立 router/service/repository 闭环。 |
+| `profiles`、`interviews` | 当前未形成完整后端业务 API，文档中的职业画像和面试会话仍属于目标能力。 |
 - 认证权限模块：用户名或邮箱 + 密码登录、简化注册、登录退出、单短期 JWT、HttpOnly Cookie、角色与资源归属校验。
 - 用户与角色模块：求职者、HR 两类角色，不建立业务管理员角色；注册页直接选择角色。
 - 企业模块：维护企业基础信息和 HR 企业归属，一个企业可关联多个 HR；P0 仍按岗位创建者隔离业务数据。
@@ -447,7 +483,7 @@ C 级未来边界：
 
 ## 15. MVP 边界
 
-### 15.1 必须真实实现
+### 15.1 Target / To-Be 必须真实实现
 
 - 登录、退出、简化注册、演示账号和基础角色权限。
 - 简历上传、文本抽取和结构化解析。
@@ -576,7 +612,7 @@ C 级未来边界：
 - 复杂企业组织架构、审批流和审计体系。
 - 在 P0 引入向量数据库作为核心依赖。
 
-## 21. 需要保留的后续扩展能力
+## 21. Planned Extensions / 需要保留的后续扩展能力
 
 - SQLite 可迁移到 PostgreSQL。
 - AI 请求当前同步执行并预留状态字段；若固定测试样本经常超过 15 秒或出现超时，再迁移到后台任务、前端轮询和独立任务队列。

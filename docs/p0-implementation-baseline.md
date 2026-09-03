@@ -1,9 +1,10 @@
 # HireLink P0 实施基线
 
-> 状态：Frozen v1  
+> 状态：Frozen v1（历史计划冻结，不代表当前实现已完成）\\
 > 生效范围：P0 后端骨架、数据层、AI 适配层、解析、匹配和演示数据并行开发  
 > 上游依据：`docs/prd.md`、`docs/architecture.md`、`docs/roadmap.md`  
 > 变更规则：仅主控线程或其明确指定的基线负责人可以修改本文档。
+> 当前代码状态：本文是早期 P0 并行开发基线，不再代表当前完整实现状态。当前代码已包含认证、核心 demo API、真人面试后端和通知后端等超出本轮基线的内容；实际状态以 `docs/implementation-status.md` 为准。
 
 ## 1. 目标与边界
 

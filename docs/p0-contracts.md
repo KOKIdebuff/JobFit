@@ -1,8 +1,9 @@
 # HireLink P0 公共契约
 
-> 状态：Frozen v1  
+> 状态：Frozen v1（历史公共契约冻结，不代表当前实体/API 完整清单）\\
 > 生效范围：所有 `/api/v1` API、模块间调用、AI Adapter、日志和错误处理  
 > 变更规则：业务线程只能消费本契约，不得自行扩展公共响应、错误前缀或跨模块调用规则。
+> 当前代码状态：本文仍保留 Frozen v1 历史契约价值，但当前迁移和 API 已扩展出 `notifications` 与 `human_interviews` 相关实体和接口；因此本文不能再作为完整当前实体/API 清单使用。当前完整事实以代码、迁移和 `docs/implementation-status.md` 为准。
 
 ## 1. API 通用规则
 
@@ -178,6 +179,8 @@ P0 预留的领域错误码：
 
 ## 4. 核心实体名称
 
+> 当前实现扩展：除本节 Frozen v1 实体外，迁移已新增 `notifications`、`human_interviewers`、`human_interview_location_templates`、`human_interview_meeting_information`、`human_interview_invitations`、`human_interview_availability_slots`、`human_interview_sessions`、`human_interview_bookings`、`human_interview_booking_participants`、`human_interview_booking_status_history`、`human_interview_reports` 和 `human_interview_audit_records`。这些表已属于当前代码事实，但尚未回写进 Frozen v1 原始实体表。
+
 现有 architecture 实际列出 17 个持久化实体：16 个核心业务/运行实体，加 1 个演示快照实体。以下名称全部冻结：
 
 | 模块 | 实体 |
@@ -194,6 +197,18 @@ P0 预留的领域错误码：
 | `demo_data` | `demo_snapshots` |
 
 禁止创建 `candidates`、`job_profiles`、`resume_versions`、`agent_runs`、`reports` 等同义表替代上述实体。版本信息作为既有实体字段表达，除非后续基线变更明确新增实体。
+
+### 4.1 当前实际 API 摘要（2026-06-24）
+
+当前 `/api/v1` 已挂载的主要接口包括：
+
+| 模块 | 接口摘要 | 当前说明 |
+|---|---|---|
+| `auth` | `/auth/register`、`/auth/login`、`/auth/logout`、`/auth/me` | 已实现并有认证测试覆盖。 |
+| `hirelink-core` | `/jobs`、`/jobs/{job_id}/parse`、`/resumes`、`/applications`、`/candidate/applications`、`/hr/jobs/{job_id}/candidates`、`/applications/{application_id}`、trial、report、decision、`/ai-runs` | 当前承载核心 demo 闭环，多数数据为 mock/demo。 |
+| `human-interviews` | 邀约、撤回、档期、候选人预约、预约详情、pending confirmation、维护任务、取消、改期、状态标记、真人报告提交/发布/读取 | 后端已实现较完整基础闭环，前端尚未接入这些 API。 |
+| `notifications` | `/notifications`、`/notifications/{notification_id}/read`、`/notifications/read-all` | 后端已实现，前端当前仍为 localStorage 服务。 |
+
 
 ## 5. 模块间接口
 
