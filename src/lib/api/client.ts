@@ -42,10 +42,11 @@ export class ApiError extends Error {
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
 const NETWORK_ERROR_MESSAGE =
-  "无法连接到 HireLink API，请确认后端 http://127.0.0.1:8000 已启动并已完成数据库迁移。";
+  "无法连接到 JobFit API，请确认后端 http://127.0.0.1:8000 已启动并已完成数据库迁移。";
 
 export function getApiBaseUrl() {
-  const envBaseUrl = import.meta.env.VITE_HIRELINK_API_BASE_URL as string | undefined;
+  const envBaseUrl = (import.meta.env.VITE_JOBFIT_API_BASE_URL ||
+    import.meta.env.VITE_HIRELINK_API_BASE_URL) as string | undefined;
   return (envBaseUrl || DEFAULT_API_BASE_URL).replace(/\/$/, "");
 }
 
@@ -55,10 +56,10 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     response = await fetch(`${getApiBaseUrl()}${path}`, {
       ...init,
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...init.headers,
-      },
+      headers:
+        init.body instanceof FormData
+          ? init.headers
+          : { "Content-Type": "application/json", ...init.headers },
     });
   } catch (error) {
     throw new ApiError(NETWORK_ERROR_MESSAGE, "COMMON_NETWORK_ERROR", 0, {

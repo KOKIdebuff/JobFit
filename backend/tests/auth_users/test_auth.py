@@ -41,7 +41,7 @@ def test_demo_hr_can_login_and_read_me(client: TestClient) -> None:
     assert payload["data"]["user"]["email"] == DEMO_HR_EMAIL
     assert payload["data"]["user"]["display_name"] == "陈经理"
     assert payload["data"]["user"]["organization_name"] == "星河智能"
-    assert "hirelink_session" in response.cookies
+    assert "jobfit_session" in response.cookies
 
     me = client.get("/api/v1/auth/me")
     assert me.status_code == 200
@@ -133,7 +133,7 @@ def test_register_creates_candidate_and_sets_cookie(client: TestClient) -> None:
     assert payload["data"]["user"]["display_name"] == "新候选人"
     assert payload["data"]["user"]["organization_id"] is None
     assert payload["data"]["user"]["organization_name"] is None
-    assert "hirelink_session" in response.cookies
+    assert "jobfit_session" in response.cookies
 
     me = client.get("/api/v1/auth/me")
     assert me.status_code == 200
@@ -167,7 +167,7 @@ def test_logout_clears_cookie(client: TestClient) -> None:
 
     assert logout.status_code == 200
     assert logout.json()["data"] == {"logged_out": True}
-    assert "hirelink_session" in logout.headers.get("set-cookie", "")
+    assert "jobfit_session" in logout.headers.get("set-cookie", "")
 
 
 def test_require_role_blocks_candidate(test_settings: Any) -> None:

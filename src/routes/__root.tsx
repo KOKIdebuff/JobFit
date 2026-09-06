@@ -78,24 +78,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "HireLink AI — AI 人才服务智能体平台" },
+      { title: "JobFit — 岗位胜任力评估智能体" },
       {
         name: "description",
-        content:
-          "面向招聘能力验证的产品原型，围绕简历解析、规则匹配、轻量面试和结构化报告展示 P0 流程。",
+        content: "通过简历画像、自适应面试和证据驱动报告，帮助候选人理解岗位胜任力边界。",
       },
-      { name: "author", content: "HireLink AI" },
-      { property: "og:title", content: "HireLink AI — AI 人才服务智能体平台" },
+      { name: "author", content: "JobFit" },
+      { property: "og:title", content: "JobFit — 岗位胜任力评估智能体" },
       {
         property: "og:description",
-        content: "简历解析、规则评分、固定 Agent 工作流、轻量面试与结构化 AI 报告。",
+        content: "简历画像、自适应面试、能力边界与证据驱动的岗位评估报告。",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "HireLink AI — AI 人才服务智能体平台" },
+      { name: "twitter:title", content: "JobFit — 岗位胜任力评估智能体" },
       {
         name: "twitter:description",
-        content: "简历解析、规则评分、固定 Agent 工作流、轻量面试与结构化 AI 报告。",
+        content: "简历画像、自适应面试、能力边界与证据驱动的岗位评估报告。",
       },
       {
         property: "og:image",

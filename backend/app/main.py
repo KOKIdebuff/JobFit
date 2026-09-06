@@ -13,9 +13,7 @@ from app.core.error_handlers import register_exception_handlers
 from app.core.logging import configure_logging, get_logger, new_operation_id
 from app.core.middleware import RequestContextMiddleware
 from app.modules.auth_users.router import router as auth_router
-from app.modules.demo_data.router import router as core_router
-from app.modules.human_interviews.router import router as human_interviews_router
-from app.modules.notifications.router import router as notifications_router
+from app.modules.jobfit.router import router as jobfit_router
 
 
 class HealthData(BaseModel):
@@ -80,9 +78,7 @@ def create_app(
         create_api_router(
             (
                 auth_router,
-                core_router,
-                human_interviews_router,
-                notifications_router,
+                jobfit_router,
                 *tuple(module_routers),
             )
         )

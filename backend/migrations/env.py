@@ -9,6 +9,7 @@ from app.modules.ai_runs import models as ai_runs_models
 from app.modules.applications_matches import models as applications_matches_models
 from app.modules.auth_users import models as auth_users_models
 from app.modules.human_interviews import models as human_interviews_models
+from app.modules.jobfit import models as jobfit_models
 from app.modules.jobs import models as jobs_models
 from app.modules.notifications import models as notifications_models
 from app.modules.reports import models as reports_models
@@ -25,6 +26,7 @@ del (
     auth_users_models,
     human_interviews_models,
     jobs_models,
+    jobfit_models,
     notifications_models,
     reports_models,
     resumes_models,

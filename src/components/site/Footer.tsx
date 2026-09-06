@@ -9,29 +9,23 @@ export function Footer() {
           <div className="max-w-sm space-y-3">
             <Logo />
             <p className="text-sm text-muted-foreground">
-              让求职从「海投等待」变成「精准连接 + 智能筛选」。
+              用真实对话与可追溯证据，识别岗位胜任力边界。
             </p>
           </div>
           <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
-            <Link to="/match" className="text-muted-foreground hover:text-foreground">
-              岗位匹配
+            <Link to="/assessment" className="text-muted-foreground hover:text-foreground">
+              岗位评估
             </Link>
-            <Link to="/resume" className="text-muted-foreground hover:text-foreground">
-              简历原型
+            <Link to="/interviews" className="text-muted-foreground hover:text-foreground">
+              面试记录
             </Link>
-            <Link to="/network" className="text-muted-foreground hover:text-foreground">
-              后续人脉
-            </Link>
-            <Link to="/interview" className="text-muted-foreground hover:text-foreground">
-              轻量面试
-            </Link>
-            <Link to="/flow" className="text-muted-foreground hover:text-foreground">
-              产品流程
+            <Link to="/reports" className="text-muted-foreground hover:text-foreground">
+              评估报告
             </Link>
           </div>
         </div>
         <div className="mt-10 border-t border-border/60 pt-6 text-xs text-muted-foreground">
-          © 2026 HireLink AI · AI 人才服务智能体平台
+          © 2026 JobFit · 岗位胜任力评估智能体
         </div>
       </div>
     </footer>

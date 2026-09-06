@@ -1,7 +1,7 @@
 ﻿import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { AlertCircle, ArrowRight, Loader2, ShieldCheck, Sparkles } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/site/PageShell";
@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { authQueryKey } from "@/hooks/use-current-user";
 import { ApiError } from "@/lib/api/client";
 import { DEMO_ACCOUNTS, authService } from "@/lib/auth/service";
-import type { AuthSession } from "@/lib/auth/types";
 
 interface LoginSearch {
   redirect?: string;
@@ -26,24 +25,32 @@ export const Route = createFileRoute("/login")({
   }),
   head: () => ({
     meta: [
-      { title: "登录 - HireLink AI" },
-      { name: "description", content: "登录 HireLink AI，进入 HR 或求职者工作流。" },
+      { title: "登录 - JobFit" },
+      { name: "description", content: "登录 JobFit，开始岗位胜任力评估。" },
     ],
   }),
   component: LoginPage,
 });
 
-function safeRedirect(value: string | undefined, role: AuthSession["user"]["role"]) {
-  if (value && value.startsWith("/") && !value.startsWith("//")) return value;
-  return role === "hr" ? "/hr" : "/resume";
+function safeRedirect(value: string | undefined) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/assessment";
+
+  const pathname = value.split(/[?#]/, 1)[0];
+  const isJobFitRoute =
+    pathname === "/assessment" ||
+    pathname === "/interviews" ||
+    pathname === "/reports" ||
+    pathname.startsWith("/interviews/") ||
+    pathname.startsWith("/reports/");
+
+  return isJobFitRoute ? value : "/assessment";
 }
 
 function LoginPage() {
   const search = Route.useSearch();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [identifier, setIdentifier] = useState<string>(DEMO_ACCOUNTS.hr.identifier);
-  const [password, setPassword] = useState<string>(DEMO_ACCOUNTS.hr.password);
+  const [identifier, setIdentifier] = useState<string>(DEMO_ACCOUNTS.candidate.identifier);
+  const [password, setPassword] = useState<string>(DEMO_ACCOUNTS.candidate.password);
   const [error, setError] = useState<string | null>(null);
 
   const loginMutation = useMutation({
@@ -51,22 +58,16 @@ function LoginPage() {
     onSuccess: (session) => {
       queryClient.setQueryData(authQueryKey, session);
       toast.success(`欢迎回来，${session.user.display_name}`);
-      const target = safeRedirect(search.redirect, session.user.role);
-      if (target === "/hr") {
-        void navigate({ to: "/hr" });
-      } else {
-        window.location.assign(target);
-      }
+      window.location.assign(safeRedirect(search.redirect));
     },
     onError: (err) => {
       setError(err instanceof ApiError ? err.message : "登录失败，请稍后重试");
     },
   });
 
-  const helperText = useMemo(() => {
-    if (loginMutation.isPending) return "正在验证账号并建立安全会话";
-    return "登录后将按账号角色进入对应工作流。";
-  }, [loginMutation.isPending]);
+  const helperText = loginMutation.isPending
+    ? "正在验证账号并建立安全会话"
+    : "登录后即可上传简历并开始岗位评估。";
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -81,34 +82,14 @@ function LoginPage() {
         <div className="relative mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_440px] lg:items-center">
           <section className="max-w-2xl">
             <Badge variant="secondary" className="rounded-full px-3 py-1">
-              <Sparkles className="mr-1 h-3.5 w-3.5" /> HireLink AI Auth
+              <Sparkles className="mr-1 h-3.5 w-3.5" /> JobFit 账号登录
             </Badge>
             <h1 className="mt-5 text-3xl font-semibold leading-tight sm:text-5xl">
-              登录后进入 <span className="text-gradient">HireLink 工作台</span>
+              登录后开始 <span className="text-gradient">岗位胜任力评估</span>
             </h1>
             <p className="mt-4 text-sm leading-7 text-muted-foreground sm:text-base">
-              使用 HR 或求职者账号进入对应流程，继续处理候选人、面试预约和报告查看。
+              上传简历并选择目标岗位，通过自适应追问沉淀能力证据，生成可解释的评估报告。
             </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <AccountCard
-                title="HR 账号"
-                description="进入 HR 工作台、候选人、报告和真人面试预约流程。"
-                onUse={() => {
-                  setIdentifier(DEMO_ACCOUNTS.hr.identifier);
-                  setPassword(DEMO_ACCOUNTS.hr.password);
-                  setError(null);
-                }}
-              />
-              <AccountCard
-                title="求职者账号"
-                description="进入求职者流程，查看申请、任务、面试和报告。"
-                onUse={() => {
-                  setIdentifier(DEMO_ACCOUNTS.candidate.identifier);
-                  setPassword(DEMO_ACCOUNTS.candidate.password);
-                  setError(null);
-                }}
-              />
-            </div>
           </section>
 
           <Card className="rounded-3xl border-border shadow-soft">
@@ -125,7 +106,7 @@ function LoginPage() {
                     value={identifier}
                     onChange={(event) => setIdentifier(event.target.value)}
                     autoComplete="username"
-                    placeholder="hr.demo@hirelink.local"
+                    placeholder="请输入演示账号邮箱"
                   />
                 </div>
                 <div className="space-y-2">
@@ -165,27 +146,5 @@ function LoginPage() {
         </div>
       </main>
     </PageShell>
-  );
-}
-
-function AccountCard({
-  title,
-  description,
-  onUse,
-}: {
-  title: string;
-  description: string;
-  onUse: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onUse}
-      className="rounded-2xl border border-border bg-card p-4 text-left shadow-soft transition-colors hover:bg-secondary/45"
-    >
-      <div className="font-medium">{title}</div>
-      <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
-      <span className="mt-3 inline-flex text-xs font-medium text-foreground">填入账号</span>
-    </button>
   );
 }

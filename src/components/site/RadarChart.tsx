@@ -1,6 +1,6 @@
-import type { ScoreDim } from "@/lib/mock-data";
+export type RadarDimension = { label: string; value: number };
 
-export function RadarChart({ data, size = 280 }: { data: ScoreDim[]; size?: number }) {
+export function RadarChart({ data, size = 280 }: { data: RadarDimension[]; size?: number }) {
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - 44;
