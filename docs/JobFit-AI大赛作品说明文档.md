@@ -37,7 +37,8 @@ JobFit 的回答不是替代招聘判断，而是把岗位能力验证过程变�
 2. 接收候选人的文字回答或浏览器语音转文字结果。
 3. 用确定性规则评估回答的相关性、深度、具体性、正确性和证据强度。
 4. 选择澄清、要求实例、情景题、难度变化、能力维度切换或结束。
-5. 保存消息、评估、Evidence、检索轨迹和记忆。
+5. 对未结束的既定 `NextAction`，由受控 Provider 表达为专业下一问；Provider 不改变状态机、评分或 Evidence 语义。
+6. 保存消息、评估、Evidence、检索轨迹、记忆和非敏感 Provider 调用审计。
 
 会话使用客户端请求 ID 与版本号控制重复提交和并发冲突，并在至少八轮回答后允许完成。
 
@@ -77,15 +78,16 @@ JobFit 的回答不是替代招聘判断，而是把岗位能力验证过程变�
 | 浏览器语音转文字                             | frontend_demo | 只形成文本输入，不保存或上传音频。       |
 | BM25 检索                                    | implemented   | 使用内置岗位标准片段，不是外部知识库。   |
 | 自由 JD 语义建模                             | partial       | JD 文本可保存，能力模型来自模板。        |
-| 真实 LLM Provider                            | partial       | 有配置校验，没有真实 Provider 调用证据。 |
+| 受控 LLM Follow-up Provider（JF-P1-01）      | implemented   | deterministic / OpenAI-compatible 受控路径已完成，验证范围为 V2（local/mock）。 |
+| 真实外部 Provider / Production Validation    | pending       | 没有命名真实外部 Provider 调用或生产运行证据；不能写为 Production Ready。 |
 
-因此，作品不声称已经完成真实大模型、在线知识库、视频面试或企业级招聘集成。
+因此，作品不声称已经完成真实外部大模型运行验证、在线知识库、视频面试或企业级招聘集成。
 
 ## 5. 技术架构
 
 前端使用 React、TanStack Start、TanStack Query、Tailwind 与 Recharts；后端使用 FastAPI、Pydantic、SQLAlchemy、SQLite 与 Alembic。
 
-JobFit 后端围绕简历、画像、评估、面试会话、回答评估、Evidence、记忆、检索轨迹和报告建立持久化模型。认证使用 JWT HttpOnly Cookie，文件处理校验大小、类型、MIME、基本文件签名和可提取文本。
+JobFit 后端围绕简历、画像、评估、面试会话、回答评估、Evidence、记忆、检索轨迹、P1 专属 LLMInvocation 审计和报告建立持久化模型。认证使用 JWT HttpOnly Cookie，文件处理校验大小、类型、MIME、基本文件签名和可提取文本。
 
 ## 6. 创新点
 
@@ -93,7 +95,7 @@ JobFit 后端围绕简历、画像、评估、面试会话、回答评估、Evid
 2. **从固定题库到自适应追问**：面试 Runtime 按回答强度、覆盖度和难度控制后续问题。
 3. **从单一评分到 Evidence Ledger**：匹配度、能力边界和建议均保留可追溯 Evidence。
 4. **从长对话遗忘到三层记忆**：工作、摘要和证据记忆共同控制上下文和长期追踪。
-5. **从不可复核 AI 结论到确定性评估 Runtime**：当前规则可测试、可解释，并为后续 Provider 扩展保留边界。
+5. **从不可复核 AI 结论到受控智能表达**：P1-01 已将 Provider 限制为既定追问的语言表达，固定 Runtime 继续控制状态、Evidence 和评分。
 
 ## 7. 数据最小化与安全
 
@@ -109,4 +111,4 @@ AI 内推网络、企业人才运营、HR 招聘 CRM、ATS、真人面试预约�
 
 ## 9. 后续演进
 
-在保持 Evidence、能力边界和可追溯性不变的前提下，后续可以接入真实 LLM Provider、可维护岗位知识库、任意 JD 的语义建模和浏览器端到端验证。每项能力只有在获得代码、测试和运行证据后，才会从规划升级为当前事实。
+P1-01 已完成受控 Provider 的 V2（local/mock）实现；真实外部 Provider Validation 仍为 pending。后续 P1-02 至 P1-09 的语义评估、智能追问、RAG 推理、Evidence / Boundary、语义记忆、报告质量、Text Interview Persona 与 Browser E2E 目标见 [P1 分阶段升级协议](./p1-implementation-protocol.md)。每项能力只有在获得对应代码、测试和运行证据后，才会从规划升级为当前事实。

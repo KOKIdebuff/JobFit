@@ -204,6 +204,26 @@ class RetrievalTrace(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
 
 
+class LLMInvocation(Base):
+    __tablename__ = "llm_invocations"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
+    public_id: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    session_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("interview_sessions.id", ondelete="CASCADE"), index=True
+    )
+    turn_index: Mapped[int] = mapped_column(Integer)
+    purpose: Mapped[str] = mapped_column(String(50))
+    provider: Mapped[str] = mapped_column(String(40))
+    model: Mapped[str] = mapped_column(String(120))
+    prompt_version: Mapped[str] = mapped_column(String(80))
+    knowledge_version: Mapped[str] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(20))
+    error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    duration_ms: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+
+
 class AssessmentReport(Base):
     __tablename__ = "assessment_reports"
 

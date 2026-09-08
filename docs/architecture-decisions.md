@@ -4,7 +4,7 @@
 > 它不替代产品需求、架构、路线图、实施计划、运行进度或代码事实；当前 P0 接口与契约基线由
 > [implementation-plan.md](./implementation-plan.md) 按 `D-008` 维护。
 >
-> 登记日期：2026-09-06。批准来源：项目负责人于 2026-09-06 对 JobFit 文档治理范围和产品边界的明确指示。
+> 初始登记日期：2026-09-06。初始批准来源为项目负责人于 2026-09-06 对 JobFit 文档治理范围和产品边界的明确指示；后续已批准决策的来源与时间以各自条目为准。
 
 ## 使用规则
 
@@ -25,6 +25,8 @@
 | D-006 | approved | 文档权威边界与 P1 任务准入 | [implementation-plan.md](./implementation-plan.md)、[progress.md](./progress.md) |
 | D-007 | approved | FastAPI、SQLite 与模块化单体工程取舍 | [implementation-status.md](./implementation-status.md)、[architecture.md](./architecture.md) |
 | D-008 | approved | P0 内容归纳、契约基线迁移与历史归档 | [implementation-plan.md](./implementation-plan.md)、[progress.md](./progress.md) |
+| D-009 | approved | 真实 LLM Provider 的受控追问边界 | [architecture.md](./architecture.md)、[implementation-plan.md](./implementation-plan.md)、[progress.md](./progress.md) |
+| D-010 | approved | P1 分阶段智能化升级协议与状态基线 | [p1-implementation-protocol.md](./p1-implementation-protocol.md)、[roadmap.md](./roadmap.md)、[progress.md](./progress.md) |
 
 ## D-001：以岗位胜任力评估为唯一产品主线
 
@@ -90,3 +92,25 @@
 - **结论**：`p0-contracts.md`、`p0-parallel-task-map.md`、`p0-integration-issues.md` 与 `p0-implementation-baseline.md` 的有效 JobFit 内容归入当前六文档体系；四份原文件移动至 `docs/archive/legacy-p0/`，不再作为活动主入口。
 - **理由**：当前接口、任务、状态与工程取舍若同时由 P0 文件和当前文档维护，会形成相互冲突的事实源；归档能保留历史，同时让 JobFit 主线只有可继续维护的权威入口。
 - **影响**：Implementation Plan 承载 P0 接口与契约基线、P0/P1 任务表和 `JF-DOC-02`；Progress 承载任务状态与风险；Implementation Status 仅承载代码事实；README、架构和当前主文档的链接必须离开根 `p0-*.md` 路径。归档中的旧 HireLink 内容只能作为历史，不得重新定义当前能力。
+
+## D-009：真实 LLM Provider 的受控追问边界
+
+- **状态**：approved。
+- **批准人 / 时间**：项目负责人，2026-09-07。
+- **来源与历史**：项目负责人在当前对话明确选择 `JF-P1-01` 的路径 A；本次同步记录时间为 2026-09-07T00:40:05+08:00。此前 P1-01 仅为 pending 方向，其 Provider、失败处理和运行证据决策均未冻结。
+- **结论**：`JF-P1-01` 采用仅后端可调用的 OpenAI-compatible Chat Completions Provider。Provider 只生成与既定 `NextAction` 一致的下一问；固定 Interview Orchestrator 继续唯一决定回答评估、会话状态、能力切换、难度变化和结束条件，Evidence 验证、Memory 更新和 Report 评分保持既有确定性语义。
+- **RAG 与 Prompt 边界**：首个开场问题保持确定性模板。从后续回答开始，Provider 只接收受控构造的既定动作、能力项、难度、候选人回答、当前 Summary / Evidence Memory 摘要，以及现有内置 BM25 的检索片段和知识版本。该检索仍是内置岗位资料，不等同于外部知识库或 `JF-P1-02` 的资料治理。候选人内容仅作为不可信上下文，不能改变动作、调用目标或系统边界。
+- **失败与可追溯性**：当配置为 `openai_compatible` 时，超时、网络/Provider 错误或无效输出分别复用既有 `AI_TIMEOUT`、`AI_PROVIDER_ERROR`、`AI_INVALID_OUTPUT` 语义失败；该轮不得保存回答、Evidence、Memory 或 Report 变更。`deterministic` 仅是显式配置的开发/演示模式，不作为静默回退。后续实现增加 P1 专属、追加式 `LLMInvocation` 审计实体和迁移，记录会话/轮次/目的、Provider、模型、Prompt 版本、检索知识版本、状态、耗时和归类错误；不得记录密钥、Authorization header、完整 Prompt 或完整 Provider 错误正文。
+- **验证与完成边界**：首期以本地 mock/stub 的受控调用契约验证为基础；真实外部 Provider 的 V5 运行证据必须在本地安全配置密钥后单独取得。本决策和后续 mock 验证均不构成真实外部调用、浏览器 E2E 或已实现状态的证据。
+- **影响**：本决策冻结 P1-01 的 Provider、失败和审计边界，并同步到 Architecture、Implementation Plan 和 Progress。它不批准重写 Competency Model、Evidence Ledger、Memory、Report、自由决策型多 Agent、外部知识库、自由 JD 语义建模或浏览器 E2E。
+- **后续协议注记**：`D-010` 于 2026-09-08 以新的、未实施的 P1 阶段协议取代此前 P1-02 至 P1-04 的规划身份；本条中对旧 P1-02 资料治理的引用仅保留为当时的历史语境，不改变 D-009 对 P1-01 的批准、实现边界或验证证据。
+
+## D-010：P1 分阶段智能化升级协议与状态基线
+
+- **状态**：approved。
+- **批准人 / 时间**：项目负责人，2026-09-08。
+- **来源**：项目负责人明确要求将 P1 分阶段协议、P1-01 的完成边界和后续 pending Phase 固化为 Markdown 文档基线。
+- **结论**：`docs/p1-implementation-protocol.md` 成为 P1-01 至 P1-09 的正式阶段协议。`JF-P1-01` 当前为 `completed`、`V2（local/mock）`；真实外部 Provider Validation 和 Production Validation 均为 `pending`。`JF-P1-02` 至 `JF-P1-09` 均为 `pending`，本决策不授权启动其中任何一个实现。
+- **理由**：Provider 实现、local/mock 验证、Roadmap、Plan 和面向读者文档若继续采用不同 P1 身份或验证结论，会把已实现的受控路径、真实外部验证和未来规划混为一谈。
+- **边界**：P1 只在既有 P0 Runtime 上增量增强。LLM 提供语义理解与语言表达，固定 Deterministic Runtime 保持状态机、会话、Schema、版本、幂等、Evidence、评分、失败处理和报告公式的控制权。P0 Freeze、Decision Protocol 与 Out of Scope 以 P1 Protocol 为准。
+- **影响**：Roadmap 同步阶段顺序，Implementation Plan 同步任务准入，Progress 同步状态索引，Implementation Status 同步代码事实，Architecture 和 README 同步当前边界。保留 D-009 与 P1-01 不可变事件；不修改 Python、前端、Runtime、数据库、迁移、API 或 Provider 实现。

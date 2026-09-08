@@ -21,7 +21,8 @@ JobFit 将简历、目标岗位和多轮对话面试组织为可追溯的岗位�
 | 浏览器语音输入                  | frontend_demo         | 使用浏览器语音转文字，仅提交文本；不保存或上传音频。                            |
 | Evidence Ledger、三层记忆、BM25 | implemented           | 证据、摘要记忆、工作记忆、检索轨迹均有当前 Runtime 证据。                       |
 | 能力边界、匹配评分与报告        | implemented           | 由岗位权重和有效 Evidence 的确定性公式生成。                                    |
-| 真实 LLM Provider               | partial               | 配置支持 deterministic 与 openai_compatible 校验；当前 Runtime 未调用外部模型。 |
+| 受控 LLM 后续追问 Provider       | implemented           | `JF-P1-01` 已完成受控 deterministic / OpenAI-compatible 路径，并通过 V2（local/mock）验证。 |
+| 真实外部 Provider 验证           | pending               | 尚无命名真实外部 Provider 调用或生产验证证据；不得写为 Production Ready。             |
 
 旧招聘平台代码、迁移和表可能仍存在于仓库历史或数据库中，但已经不挂载到 JobFit Runtime、导航或比赛主路径。
 
@@ -92,7 +93,7 @@ AI 内推网络、企业人才运营、HR 招聘 CRM、ATS 对接、真人面试
 | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | JOBFIT_ENVIRONMENT、JOBFIT_LOG_LEVEL、JOBFIT_DATABASE_URL、JOBFIT_SQLITE_BUSY_TIMEOUT_MS                   | 后端运行基础配置。                                         |
 | JOBFIT_JWT_SECRET、JOBFIT_AUTH_COOKIE_NAME                                                                 | 认证安全与 Cookie 名称；生产环境必须替换默认密钥。         |
-| JOBFIT_LLM_PROVIDER、JOBFIT_LLM_BASE_URL、JOBFIT_LLM_API_KEY、JOBFIT_LLM_MODEL、JOBFIT_LLM_TIMEOUT_SECONDS | Provider 配置校验；并不证明当前已调用真实 LLM。            |
+| JOBFIT_LLM_PROVIDER、JOBFIT_LLM_BASE_URL、JOBFIT_LLM_API_KEY、JOBFIT_LLM_MODEL、JOBFIT_LLM_TIMEOUT_SECONDS | 受控 Provider 的服务端配置；local/mock 路径已验证，但配置或 mock 不能证明真实外部 Provider 已验证。 |
 | JOBFIT_ALLOW_DEMO_PROVIDER                                                                                 | 是否允许 deterministic 演示 Provider。                     |
 | VITE_JOBFIT_API_BASE_URL                                                                                   | Vite 构建时读取的前端 API 基地址，应在前端环境文件中配置。 |
 | VITE_JOBFIT_ENABLE_SPEECH_INPUT                                                                            | 示例中存在但当前前端未读取，不应被表述为可用的功能开关。   |
@@ -119,6 +120,7 @@ HIRELINK 前缀仅作为后端读取旧环境配置的兼容别名保留；新�
 - [产品需求文档](./docs/prd.md)
 - [技术架构](./docs/architecture.md)
 - [路线图](./docs/roadmap.md)
+- [P1 分阶段升级协议](./docs/p1-implementation-protocol.md)
 - [实施计划与 P0 接口基线](./docs/implementation-plan.md)
 - [当前进度](./docs/progress.md)
 - [当前实现状态](./docs/implementation-status.md)

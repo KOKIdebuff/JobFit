@@ -16,6 +16,15 @@ from app.core.config import Settings
 from app.core.exceptions import AppException
 from app.core.time import utc_now
 from app.modules.auth_users.schemas import AuthUser
+from app.modules.jobfit.llm import (
+    PROMPT_VERSION as LLM_QUESTION_PROMPT_VERSION,
+)
+from app.modules.jobfit.llm import (
+    FollowUpRequest,
+    LLMQuestionError,
+    LLMQuestionResult,
+    provider_for,
+)
 from app.modules.jobfit.models import (
     AnswerAssessment,
     AssessmentCase,
@@ -27,6 +36,7 @@ from app.modules.jobfit.models import (
     InterviewSession,
     JobCompetency,
     JobCompetencyProfile,
+    LLMInvocation,
     RetrievalTrace,
 )
 from app.modules.jobfit.profiles import COMPETENCY_PROFILES, profile_for
@@ -510,6 +520,71 @@ class JobFitService:
             return NextAction.NEXT_COMPETENCY
         return NextAction.SCENARIO
 
+    def _record_llm_invocation(
+        self,
+        *,
+        interview: InterviewSession,
+        turn_index: int,
+        status: str,
+        error_code: ErrorCode | None = None,
+        duration_ms: int = 0,
+        provider: str | None = None,
+        model: str | None = None,
+        prompt_version: str | None = None,
+        knowledge_version: str | None = None,
+    ) -> LLMInvocation:
+        invocation = LLMInvocation(
+            public_id=_public("llm"),
+            session_id=interview.id,
+            turn_index=turn_index,
+            purpose="follow_up_from_answer",
+            provider=provider or self.settings.llm_provider,
+            model=model or self.settings.llm_model or "deterministic-v1",
+            prompt_version=prompt_version or LLM_QUESTION_PROMPT_VERSION,
+            knowledge_version=knowledge_version or KNOWLEDGE_VERSION,
+            status=status,
+            error_code=error_code.value if error_code else None,
+            duration_ms=duration_ms,
+        )
+        self.session.add(invocation)
+        return invocation
+
+    def _memory_context(self, interview: InterviewSession) -> tuple[str, list[dict[str, Any]]]:
+        memory = self.session.scalar(
+            select(InterviewMemory).where(InterviewMemory.session_id == interview.id)
+        )
+        if memory is None:
+            return "", []
+        return memory.summary_memory, cast(list[dict[str, Any]], _load(memory.evidence_memory_json))
+
+    def _generate_next_question(
+        self,
+        *,
+        interview: InterviewSession,
+        job: JobCompetencyProfile,
+        competency: JobCompetency,
+        action: NextAction,
+        previous_answer: str,
+        difficulty: int,
+        retrieved: list[dict[str, Any]],
+    ) -> tuple[str, LLMQuestionResult | None]:
+        summary_memory, evidence_memory = self._memory_context(interview)
+        request = FollowUpRequest(
+            job_title=job.title,
+            competency_name=competency.name,
+            competency_description=competency.description,
+            action=action,
+            previous_answer=previous_answer,
+            difficulty=difficulty,
+            retrieval_chunks=retrieved,
+            knowledge_version=KNOWLEDGE_VERSION,
+            summary_memory=summary_memory,
+            evidence_memory=evidence_memory,
+            template_question=self._question(job, competency, action, previous_answer, difficulty),
+        )
+        result = provider_for(self.settings).generate_follow_up(request)
+        return result.question, result
+
     def answer(self, public_id: str, payload: AnswerCreate, user: AuthUser) -> dict[str, Any]:
         interview = self._interview(public_id, user)
         duplicate = self.session.scalar(
@@ -535,12 +610,79 @@ class JobFitService:
         )
         if question is None:
             raise AppException(ErrorCode.INTERVIEW_CONFLICT, message="问题与当前会话不匹配")
+        if question.turn_index != interview.turn_count + 1:
+            raise AppException(ErrorCode.INTERVIEW_CONFLICT, message="问题不是当前待回答问题")
+        answered_current_turn = self.session.scalar(
+            select(InterviewMessage).where(
+                InterviewMessage.session_id == interview.id,
+                InterviewMessage.role == "user",
+                InterviewMessage.turn_index == question.turn_index,
+            )
+        )
+        if answered_current_turn is not None:
+            raise AppException(ErrorCode.INTERVIEW_CONFLICT, message="当前问题已回答")
         _, job, competencies = self._context(interview)
         competency = next(
             item for item in competencies if item.competency_id == question.competency_id
         )
         interview.status = InterviewStatus.EVALUATING
         result = self._assess(payload.answer, interview.current_difficulty)
+        competency_turns = (
+            len(
+                list(
+                    self.session.scalars(
+                        select(InterviewMessage).where(
+                            InterviewMessage.session_id == interview.id,
+                            InterviewMessage.role == "user",
+                            InterviewMessage.competency_id == competency.competency_id,
+                        )
+                    )
+                )
+            )
+            + 1
+        )
+        interview.status = InterviewStatus.DECIDING
+        action = self._decide(interview, result, competency_turns, competencies)
+        next_competency = competency
+        next_difficulty = interview.current_difficulty
+        retrieved: list[dict[str, Any]] = []
+        next_question = ""
+        llm_result: LLMQuestionResult | None = None
+        if action != NextAction.END_INTERVIEW:
+            if action == NextAction.INCREASE_DIFFICULTY:
+                next_difficulty = min(5, interview.current_difficulty + 1)
+            elif action == NextAction.DECREASE_DIFFICULTY:
+                next_difficulty = max(1, interview.current_difficulty - 1)
+            if action == NextAction.NEXT_COMPETENCY:
+                index = next(
+                    i
+                    for i, item in enumerate(competencies)
+                    if item.competency_id == competency.competency_id
+                )
+                next_competency = competencies[(index + 1) % len(competencies)]
+                next_difficulty = max(1, job.difficulty)
+            retrieved = retrieve(job.job_role, next_competency.competency_id, payload.answer)
+            try:
+                next_question, llm_result = self._generate_next_question(
+                    interview=interview,
+                    job=job,
+                    competency=next_competency,
+                    action=action,
+                    previous_answer=payload.answer,
+                    difficulty=next_difficulty,
+                    retrieved=retrieved,
+                )
+            except LLMQuestionError as exc:
+                self.session.rollback()
+                self._record_llm_invocation(
+                    interview=interview,
+                    turn_index=question.turn_index,
+                    status="failed",
+                    error_code=exc.code,
+                    duration_ms=exc.duration_ms,
+                )
+                self.session.commit()
+                raise AppException(exc.code, message=str(exc)) from exc
         answer = InterviewMessage(
             public_id=_public("a"),
             session_id=interview.id,
@@ -555,19 +697,6 @@ class JobFitService:
         )
         self.session.add(answer)
         self.session.flush()
-        competency_turns = len(
-            list(
-                self.session.scalars(
-                    select(InterviewMessage).where(
-                        InterviewMessage.session_id == interview.id,
-                        InterviewMessage.role == "user",
-                        InterviewMessage.competency_id == competency.competency_id,
-                    )
-                )
-            )
-        )
-        interview.status = InterviewStatus.DECIDING
-        action = self._decide(interview, result, competency_turns, competencies)
         evidence = CompetencyEvidence(
             public_id=_public("evidence"),
             session_id=interview.id,
@@ -605,37 +734,33 @@ class JobFitService:
             interview.status = InterviewStatus.COMPLETED
             interview.completed_at = utc_now()
         else:
-            if action == NextAction.INCREASE_DIFFICULTY:
-                interview.current_difficulty = min(5, interview.current_difficulty + 1)
-            elif action == NextAction.DECREASE_DIFFICULTY:
-                interview.current_difficulty = max(1, interview.current_difficulty - 1)
-            if action == NextAction.NEXT_COMPETENCY:
-                index = next(
-                    i
-                    for i, item in enumerate(competencies)
-                    if item.competency_id == competency.competency_id
-                )
-                competency = competencies[(index + 1) % len(competencies)]
-                interview.current_competency_id = competency.competency_id
-                interview.current_difficulty = max(1, job.difficulty)
-            retrieved = retrieve(job.job_role, competency.competency_id, payload.answer)
+            interview.current_difficulty = next_difficulty
+            interview.current_competency_id = next_competency.competency_id
             self.session.add(
                 RetrievalTrace(
                     public_id=_public("retrieval"),
                     session_id=interview.id,
                     turn_index=interview.turn_count + 1,
                     purpose="next_question",
-                    query_summary=f"{competency.name}:{payload.answer[:120]}",
+                    query_summary=f"{next_competency.name}:{payload.answer[:120]}",
                     source_ids_json=_json([item["source_id"] for item in retrieved]),
                     scores_json=_json([item["score"] for item in retrieved]),
                     knowledge_version=KNOWLEDGE_VERSION,
                 )
             )
+            if llm_result is not None:
+                self._record_llm_invocation(
+                    interview=interview,
+                    turn_index=question.turn_index,
+                    status="succeeded",
+                    duration_ms=llm_result.duration_ms,
+                    provider=llm_result.provider,
+                    model=llm_result.model,
+                    prompt_version=llm_result.prompt_version,
+                    knowledge_version=llm_result.knowledge_version,
+                )
             interview.status = InterviewStatus.ASKING
-            next_question = self._question(
-                job, competency, action, payload.answer, interview.current_difficulty
-            )
-            self._save_question(interview, competency, next_question, action)
+            self._save_question(interview, next_competency, next_question, action)
             interview.status = InterviewStatus.WAITING_FOR_ANSWER
         interview.version += 1
         self._update_memory(interview)

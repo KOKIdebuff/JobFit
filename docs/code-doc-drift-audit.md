@@ -1,6 +1,6 @@
 # JobFit 代码与文档一致性审计
 
-> 审计范围：当前分支 9027e06 及本次文档语义迁移。
+> 审计范围：代码提交 `d736b7e` 加当前工作区的 JF-P1-01 Provider、审计 migration、测试与文档同步。
 > 当前事实源：docs/implementation-status.md。
 > 目的：防止产品目标、代码事实与比赛叙事互相夸大。
 
@@ -18,7 +18,8 @@
 
 | 能力              | 当前状态      | 缺口                                                      |
 | ----------------- | ------------- | --------------------------------------------------------- |
-| 真实 LLM Provider | partial       | 配置校验存在，但没有 SDK 调用、真实运行或 Provider 测试。 |
+| 受控 LLM Follow-up Provider（JF-P1-01） | implemented；V2（local/mock） | 已观察到 deterministic / OpenAI-compatible Provider、受控 Prompt、非敏感审计与 local/mock Provider 测试。 |
+| 真实外部 Provider / Production Validation | pending | 尚未观察到命名真实外部 Provider 的实际调用或生产运行；V2 local/mock 不等于真实集成或 Production Ready。 |
 | 自由 JD 语义解析  | partial       | JD 文本仅持久化，岗位模型来自固定模板。                   |
 | 外部岗位知识库    | partial       | 当前 BM25 只检索内置片段。                                |
 | 浏览器语音        | frontend_demo | 依赖浏览器实现且仅产生文本，没有端到端语音质量证据。      |
@@ -32,7 +33,7 @@
 
 ## 4. 后续同步规则
 
-1. 增加 Router、迁移、Provider、知识源或评分规则时，先更新 implementation-status 的证据矩阵。
+1. 增加 Router、迁移、Provider、知识源或评分规则时，先更新 implementation-status 的证据矩阵，并保持 [P1 Protocol](./p1-implementation-protocol.md) 的阶段边界不漂移。
 2. PRD 只更新产品目标与边界；Architecture 只更新 Current/Target 结构；Roadmap 只更新任务与顺序。
 3. 每次文档改动运行路径检查、关键词语义审计和 git diff --check。
 4. 真实模型、在线知识库或浏览器 E2E 只有在相应运行证据出现后才能升级状态。

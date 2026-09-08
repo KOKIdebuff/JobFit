@@ -1,5 +1,6 @@
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -66,6 +67,16 @@ class Settings(BaseSettings):
             self.llm_base_url and self.llm_api_key and self.llm_model
         ):
             raise ValueError("openai_compatible provider requires base URL, API key and model")
+        if self.llm_provider == "openai_compatible":
+            parsed = urlsplit(self.llm_base_url)
+            if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+                raise ValueError("JOBFIT_LLM_BASE_URL must be an absolute http(s) URL")
+            if parsed.username or parsed.password or parsed.query or parsed.fragment:
+                raise ValueError(
+                    "JOBFIT_LLM_BASE_URL must not include userinfo, query or fragment"
+                )
+            if self.environment == "production" and parsed.scheme != "https":
+                raise ValueError("JOBFIT_LLM_BASE_URL must use https in production")
         return self
 
 

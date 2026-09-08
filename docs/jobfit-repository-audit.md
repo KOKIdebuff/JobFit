@@ -19,4 +19,7 @@ JobFit 是面向新一代信息技术岗位的岗位胜任力评估智能体。�
 
 ## 验证边界
 
-`deterministic` Provider 仅用于本地测试和离线演示。只有配置并实际调用 OpenAI-compatible Provider 后，才能声称真实模型集成已验证。Speech-to-Text 仅生成文本，不保存或上传音频。
+`JF-P1-01` 的 `DeterministicFollowUpProvider` 用于本地测试、离线演示和显式 deterministic mode；
+`OpenAICompatibleFollowUpProvider` 的受控调用路径已完成 V2（local/mock）验证。只有在安全配置后实际调用命名
+外部 Provider，才能声称真实模型集成已验证；Production Validation 仍为 pending。完整阶段边界见
+[P1 分阶段升级协议](./p1-implementation-protocol.md)。Speech-to-Text 仅生成文本，不保存或上传音频。

@@ -5,13 +5,15 @@
 > JobFit P0 接口与契约基线，替代已归档的 `p0-contracts.md` 活动入口。
 >
 > 建立日期：2026-09-06。当前计划基线：项目负责人于 2026-09-06 批准的 P0 内容归纳、链接迁移
-> 与历史归档范围。
+> 与历史归档范围、项目负责人于 2026-09-07 通过 `D-009` 批准的 `JF-P1-01` 路径 A 边界，以及
+> 2026-09-08 通过 `D-010` 批准的 P1 分阶段升级协议。
 
 ## 使用规则
 
 - 新任务必须先在本文定义，再由 [progress.md](./progress.md) 记录运行状态。
 - `status_initial` 是任务的初始规划元数据，不能被当作当前状态。
-- `JF-P1-*` 已作为正式 `pending` 任务登记；在 Progress 中只能显示其真实 pending 状态，不得表述为已启动或已实现。
+- `status_initial` 不等于当前运行状态。`JF-P1-01` 的历史初始状态为 `pending`，当前 `completed / V2（local/mock）` 状态只以 Progress 为准。
+- `JF-P1-02` 至 `JF-P1-09` 是正式 `pending` Phase，尚未成为可执行实现任务；其阶段目标与准入见 [p1-implementation-protocol.md](./p1-implementation-protocol.md)，进入实施前必须补齐该 Phase 的具体任务卡。
 - 产品目标由 [prd.md](./prd.md) 定义，已批准取舍由 [architecture-decisions.md](./architecture-decisions.md) 记录，代码事实由 [implementation-status.md](./implementation-status.md) 证明。
 - 当前资源接口、输入 Schema、错误、会话状态、幂等和配置兼容基线见“P0 接口与契约基线”；代码是否实际存在仍只由 Implementation Status 的源码、迁移和测试证据证明。
 
@@ -27,10 +29,15 @@
 | JF-P0-04 | P0（历史导入） | JF-P0-03 | historical | 不作为新并行任务 | historical completed |
 | JF-P0-05 | P0（历史导入） | JF-P0-04 | historical | 不作为新并行任务 | historical completed |
 | JF-P0-06 | P0（历史导入） | JF-P0-01 至 JF-P0-05 | historical | 不作为新并行任务 | historical completed |
-| JF-P1-01 | P1 | JF-P0-04 | after approval | 与 P1-02 仅在边界不重叠时可并行 | pending |
-| JF-P1-02 | P1 | JF-P0-04 | after approval | 与 P1-01 仅在边界不重叠时可并行 | pending |
-| JF-P1-03 | P1 | JF-P0-02 | after approval | 触及画像/契约/迁移，默认串行 | pending |
-| JF-P1-04 | P1 | JF-P0-06 | after approval | 只验证候选人路径，不改评分语义 | pending |
+| JF-P1-01 | P1 | JF-P0-04、D-009 | after D-009 | 已完成；后续 Phase 默认不并行启动 | pending |
+| JF-P1-02 | P1 | JF-P1-01、D-010 | after phase-specific approval | 默认串行；未形成可执行任务卡 | pending |
+| JF-P1-03 | P1 | JF-P1-02、D-010 | after phase-specific approval | 默认串行；未形成可执行任务卡 | pending |
+| JF-P1-04 | P1 | JF-P1-03、D-010 | after phase-specific approval | 默认串行；未形成可执行任务卡 | pending |
+| JF-P1-05 | P1 | JF-P1-04、D-010 | after phase-specific approval | 默认串行；未形成可执行任务卡 | pending |
+| JF-P1-06 | P1 | JF-P1-05、D-010 | after phase-specific approval | 默认串行；未形成可执行任务卡 | pending |
+| JF-P1-07 | P1 | JF-P1-06、D-010 | after phase-specific approval | 默认串行；未形成可执行任务卡 | pending |
+| JF-P1-08 | P1 | JF-P1-07、D-010 | after phase-specific approval | 默认串行；未形成可执行任务卡 | pending |
+| JF-P1-09 | P1 | JF-P1-08、D-010 | after phase-specific approval | 默认串行；未形成可执行任务卡 | pending |
 
 ## JF-DOC-01：决策与进度文档体系重组
 
@@ -110,14 +117,48 @@
 | JF-P0-05 | 能力边界、匹配度与报告 | P0-04 | AssessmentReport、能力雷达数据、优势/缺口/建议 | 报告可回溯 Evidence，匹配度按岗位权重计算 | `generate_report`、报告模型/Router、报告页面 | 评分可解释性 | P0 |
 | JF-P0-06 | 候选人评估主路径 | P0-01 至 P0-05 | 评估、面试记录和报告页面路径 | 候选人可从评估进入会话和报告，不恢复旧招聘导航 | `src/routes/assessment*`、`interviews*`、`reports*` | 前端 E2E 证据不足 | P0 |
 
-## P1 正式 pending 任务
+## P1 分阶段执行基线
 
-| Task ID | 任务名称 | 输入依赖 | 输出产物 | 验收标准 | 对应代码区域 | 风险 | 优先级 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| JF-P1-01 | 真实 LLM Provider | P0-04、Provider 决策、密钥策略 | 可测试的 Provider 调用、失败处理、模型/Prompt 版本记录 | 实际调用、失败语义、版本记录和受控测试存在；配置校验不能单独视为完成 | `core/config.py`、Provider 边界、`jobfit/service.py`、测试 | 外部成本、密钥、超时与不可复现输出 | P1 |
-| JF-P1-02 | 可维护岗位知识库 | P0-04、资料治理决策 | 可版本化知识来源、导入审计、检索轨迹 | 保留 source ID、知识版本、导入审计和回滚边界 | `jobfit/retrieval.py`、知识源模块、测试 | 资料质量、版权与版本漂移 | P1 |
-| JF-P1-03 | 自由 JD 语义建模 | P0-02、模型/审核决策 | 可审核能力项、权重和 Rubric | 任意 JD 可生成独立版本，且不覆盖现有模板/岗位画像 | profiles、schemas、service、migration、测试 | 架构/契约/迁移影响 | P1 |
-| JF-P1-04 | 前端端到端验证 | P0-06、浏览器测试环境 | 候选人主链路 E2E 套件 | 覆盖上传、评估、面试、报告、语音回退和会话冲突 | `src/routes/`、浏览器测试配置 | 浏览器能力差异与测试环境稳定性 | P1 |
+P1 的阶段身份、目标、P0 Freeze、LLM / Deterministic Runtime 边界和 Decision Protocol 由
+[p1-implementation-protocol.md](./p1-implementation-protocol.md) 唯一维护。本节只维护计划图中的任务身份与
+准入，避免把未开始 Phase 写成已有实现设计。
+
+| Task ID | 阶段名称 | `status_initial` | 当前计划边界 | 进入实施前必须补齐 |
+| --- | --- | --- | --- | --- |
+| JF-P1-01 | Controlled LLM Follow-up Provider | pending（历史） | 已完成的实际状态见 Progress：`completed / V2（local/mock）`；真实外部 Provider 验证仍 pending。 | 不适用；保留 D-009 任务卡和不可变验证记录。 |
+| JF-P1-02 | LLM Semantic Answer Evaluation | pending | 仅定义严格结构化 Semantic Judgment；LLM 不接管最终 Runtime。 | 语义结构、Runtime 控制边界、验证与 Gate。 |
+| JF-P1-03 | Intelligent Adaptive Follow-up | pending | 仅定义以 Candidate Answer、Semantic Judgment、Evidence、Memory 和 Competency Context 为输入的专业追问目标。 | 数据使用边界、接口、验证与 Gate。 |
+| JF-P1-04 | RAG Integration into Interview Reasoning | pending | 仅定义 RAG 参与 Interview Reasoning 的目标。 | 推理边界、知识治理、验证与 Gate。 |
+| JF-P1-05 | Evidence + Boundary Hardening | pending | 仅定义 Evidence Strength、Contradiction Detection、Ownership Verification 与 Competency Boundary 的增强目标。 | 规则、可追溯性、验证与 Gate。 |
+| JF-P1-06 | Semantic Long-term Memory | pending | 仅定义 Summary Memory 的语义结构化升级；不创建第四套 Memory System。 | Memory 结构、兼容性、验证与 Gate。 |
+| JF-P1-07 | Assessment Report Quality | pending | 仅定义 Evidence Traceability、客观性和 Improvement Recommendation 质量目标。 | 报告语义、验证与 Gate。 |
+| JF-P1-08 | Interviewer Persona | pending | 仅定义 Text Interview 专业表达与自然承接目标；不引入 Avatar、数字人或 Video Interview。 | Persona 边界、验证与 Gate。 |
+| JF-P1-09 | Browser E2E / Demo Validation | pending | 仅定义完整 Browser E2E Candidate Journey 验证目标。 | 测试环境、覆盖范围、验证与 Gate。 |
+
+## JF-P1-01：真实 LLM Provider 与受控追问
+
+| 字段 | 定义 |
+| --- | --- |
+| `task_id` | `JF-P1-01` |
+| `phase` | P1 |
+| `summary` | 在不重写 P0 Competency Model、Evidence Ledger、Memory、Report 或固定 Interview Orchestrator 的前提下，接入可追溯的 OpenAI-compatible Provider，使现有内置 BM25 真正进入后续追问 Prompt。 |
+| `status_initial` | `pending` |
+| `depends_on` | `JF-P0-04`；架构与行为边界由 `D-009` 批准。 |
+| `execution_order` / `parallel_with` | `after D-009` / 当前任务已完成；P1-02 至 P1-09 依 D-010 的阶段顺序保持 pending，不自动并行启动。 |
+| `execution_lane` | `jobfit-llm-provider`。 |
+| `source_requirement` | [prd.md](./prd.md) 第 4.3、4.4 节的固定面试编排、Evidence、检索与记忆要求。 |
+| `source_decision` | `D-002`、`D-003`、`D-009`。 |
+| `spec_or_contract` | 保持当前 P0 API wire shape；复用既有 `AI_TIMEOUT`、`AI_PROVIDER_ERROR`、`AI_INVALID_OUTPUT` 错误语义，不新增浏览器 Provider 接口或密钥传递。 |
+| `architecture_or_adr` | [architecture.md](./architecture.md) 的 Current / As-Is Provider 边界；Provider 只生成既定 `NextAction` 的下一问，固定 Orchestrator 仍控制评估、状态和评分。 |
+| `expected_result` | 仅后端 Provider 适配器、受控 Prompt、BM25 追问上下文、fail-closed 失败处理和 P1 专属 `LLMInvocation` 追加审计记录。审计不保存密钥、Authorization header、完整 Prompt 或完整 Provider 错误正文。 |
+| `acceptance_criteria` | 1. 显式 `openai_compatible` 配置可经受控适配器调用，且模型与 Prompt 版本可追溯；2. 首个开场问题仍为确定性模板，后续 Provider 追问使用既定动作、能力项、难度、回答、当前 Memory 摘要和 BM25 片段/知识版本；3. Provider 不得改变 `_assess()`、`_decide()`、能力切换、难度、结束、Evidence 验证、Memory 或 Report 评分语义；4. 超时、Provider 错误和无效输出使用既有 `AI_*` 语义，且该轮不写入回答、Evidence、Memory 或 Report；5. `deterministic` 仅能显式选择，不能静默回退；6. 重复提交与确定性模式现有行为保持回归通过。 |
+| `changed_files` | 实施边界限定于 `backend/app/core/config.py`、新的 JobFit Provider 边界、`backend/app/modules/jobfit/service.py`、P1 专属 `LLMInvocation` 模型/迁移、相关后端测试及受影响的事实状态文档；不改写 P0 Evidence、Memory、Report 或其历史数据。 |
+| `validation` | 文档阶段：链接、Task-ID、状态与事实表述静态检查。代码阶段：本地 V1 配置/类型/迁移检查；本地 V2（`mock`）Provider 请求、成功、超时、错误、无效输出、无 P0 持久化副作用与确定性回归测试；命名真实 Provider 的 V5 观察须在安全配置凭据后单独记录。 |
+| `required_verification_level` | 受控代码完成至少 V2（local/mock）；真实外部 Provider 运行结论只可凭独立 V5 证据声明。未取得 V5 前不得将 Implementation Status 的真实 Provider 状态升级为已验证运行。 |
+| `gate` | A1：`D-009` 已批准本任务的 Provider、失败、审计和 P0 冻结边界；A2：代码机器验证后重新检查是否仍有未批准用户可见行为；A3：不适用，除非后续执行部署、迁移或发布。 |
+| `risk` | 外部成本、凭据泄露、超时、不可复现输出、Prompt 注入、Provider 可用性和不当持久化候选人内容。Provider endpoint 只能由服务端配置，候选人内容只能作为不可信上下文。 |
+| `rollback` | 将运行配置显式切换为 `deterministic`，并仅以局部反向补丁和 P1 专属迁移回退 Provider/审计实现；不回退、重算、删除或改写既有 P0 Evidence、Memory、Report 或历史评分。 |
+| `superseded_by` | `none` |
 
 ## JF-DOC-02：P0 内容归纳、链接迁移与历史归档
 
