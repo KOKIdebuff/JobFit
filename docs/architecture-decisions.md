@@ -27,9 +27,13 @@
 | D-008 | approved | P0 内容归纳、契约基线迁移与历史归档 | [implementation-plan.md](./implementation-plan.md)、[progress.md](./progress.md) |
 | D-009 | approved | 真实 LLM Provider 的受控追问边界 | [architecture.md](./architecture.md)、[implementation-plan.md](./implementation-plan.md)、[progress.md](./progress.md) |
 | D-010 | approved | P1 分阶段智能化升级协议与状态基线 | [p1-implementation-protocol.md](./p1-implementation-protocol.md)、[roadmap.md](./roadmap.md)、[progress.md](./progress.md) |
-| D-011 | Accepted | 生产 Provider 显式选择与 deterministic 演示例外 | 本决策登记；后续实现前同步相关配置契约 |
+| D-011 | Accepted | 生产 Provider 显式选择与 deterministic 演示例外 | [architecture.md](./architecture.md)、[implementation-status.md](./implementation-status.md)、[progress.md](./progress.md) |
 | D-012 | Accepted | `REPORT_GENERATION` 作为当前未实现的预留状态 | 本决策登记；后续报告工作流设计前必须重新决策 |
 | D-013 | Accepted | `FAILED` 作为当前未实现的预留状态 | 本决策登记；未来失败分类与恢复设计前必须重新决策 |
+| D-014 | approved | P1-02 结构化 Semantic Judgment 与确定性 Runtime 边界 | [implementation-plan.md](./implementation-plan.md)、[progress.md](./progress.md) |
+| D-015 | approved | Current Baseline Browser Delivery Validation 边界 | [roadmap.md](./roadmap.md)、[implementation-plan.md](./implementation-plan.md)、[progress.md](./progress.md) |
+| D-016 | approved | P1-03 受控语义焦点追问与固定 Runtime 边界 | [implementation-plan.md](./implementation-plan.md)、[progress.md](./progress.md) |
+| D-017 | approved | P1-04 内置 BM25 Grounded Interview Reasoning 与私有 Trace | [implementation-plan.md](./implementation-plan.md)、[progress.md](./progress.md) |
 
 ## D-001：以岗位胜任力评估为唯一产品主线
 
@@ -129,9 +133,9 @@
 - **Alternatives Considered**：A. 生产环境完全禁止 deterministic；安全边界最强，但无法支持明确隔离的生产演示。B. 采用本决策的显式演示例外；保留开发、测试和受控演示可用性，同时拒绝无意的生产默认值。C. 保留当前默认行为，仅禁止 Provider 运行失败后的 fallback；迁移成本最低，但不能保证生产 Provider 是有意选择的。
 - **Consequences**：部署配置将成为生产启动的必需输入；显式演示场景必须同时表达 Provider 与 demo 许可。Provider 失败后的事务与审计语义仍以 D-009 为准，不新增降级路径。
 - **Compatibility / Migration Impact**：development / test 的默认 deterministic 行为保持兼容。现有生产部署必须显式设置 `JOBFIT_LLM_PROVIDER`；若继续使用 deterministic，必须补充显式 `JOBFIT_ALLOW_DEMO_PROVIDER=true`，否则未来实现应拒绝启动。无需数据库、API 或数据迁移。
-- **Implementation Status**：Not Implemented。当前配置尚不能可靠地区分“未配置 Provider”的生产默认值与“显式配置 deterministic”。
-- **Verification Status**：Not Verified。尚未验证新的生产启动准入，也未取得真实外部 Provider 或生产运行证据。
-- **后续实现任务或阻塞关系**：进入任何 Provider Safety 配置实现前，必须将本决策同步为配置契约、补充相应配置/Runtime 测试，并取得与主张范围匹配的验证证据；本决策本身不授权代码实现。
+- **Implementation Status**：Implemented。`Settings.validate_secure_runtime()` 通过 `model_fields_set` 区分默认值与显式 Settings 来源；production 缺少 `JOBFIT_LLM_PROVIDER` 时拒绝启动，显式 deterministic 仅在显式 `JOBFIT_ALLOW_DEMO_PROVIDER=true` 时允许。
+- **Verification Status**：V2（local/mock）。配置矩阵、Provider fail-closed 回归、完整后端 pytest、Ruff、Mypy 与安全静态扫描均已执行；未调用真实 Provider，未取得 production 或 V5 运行证据。
+- **后续实现任务或阻塞关系**：`JF-PS-01` 已完成本地配置安全实现与验证。真实 Provider V5、production 观察、部署和任何启用 D-012 / D-013 预留状态的工作仍须作为独立任务与证据处理。
 - **Supersedes / Superseded By**：不取代 D-009；本决策补充其生产配置准入边界。当前未被后续决策取代。
 
 ## D-012：`REPORT_GENERATION` 作为当前未实现的预留状态
@@ -163,3 +167,65 @@
 - **Verification Status**：Not Verified。未执行新的失败状态机或恢复流程验证。
 - **后续实现任务或阻塞关系**：任何将 Provider、报告或其他 Runtime 异常持久化为会话 `FAILED` 终态的实现，都被本决策阻塞，直至相应失败分类、恢复语义、接口契约、实施计划和测试获得批准并同步。
 - **Supersedes / Superseded By**：不取代 D-009；本决策补充其调用失败的会话状态边界。当前未被后续决策取代。
+
+## D-014：P1-02 结构化 Semantic Judgment 与确定性 Runtime 边界
+
+- **日期**：2026-09-09。
+- **状态**：approved。
+- **来源**：项目负责人明确批准 `JF-P1-02` 先于 `JF-P1-03` 实施，并确认本决策的持久化、Provider、失败与 P0 Freeze 边界。
+- **Decision**：`JF-P1-02` 新增仅后端可访问的、版本化 `semantic_judgments` 实体和独立 Alembic migration。每个成功 Judgment 关联 source answer、session、question、competency 与对应 `LLMInvocation`，并保存 `schema_version`、`prompt_version`、provider、model、受限结构化 payload 与创建时间。它是 LLM Semantic Evaluation 的中间判断，不是第二套 `AnswerAssessment`，也不得替代或改写 P0 最终评分。
+- **Provider / Schema**：Semantic Evaluation 复用现有服务器端 `JOBFIT_LLM_PROVIDER` 的 Provider 选择、安全配置、timeout 和基础 fail-closed 设施，但使用与 Follow-up `{"question":"..."}` 完全分离的严格 Semantic Judgment JSON Schema。显式 deterministic 模式使用可追溯的本地确定性结构化基线；项目负责人已授权显式 openai_compatible 的 semantic path，但其外部 payload 只能是本地构造的 synthetic/de-identified profile，不得包含原始 Candidate Answer、问题原文、岗位描述或候选人标识。Provider 错误或无效输出不得静默降级。
+- **P0 Freeze**：P1-02 不改变 `AnswerAssessment` 最终评分、Evidence persistence / validation、Interview State Machine、Session lifecycle / version / idempotency、Competency switching、结束条件或 Report scoring / formula。Semantic Judgment 当前只完成 Candidate Answer → Semantic Evaluation → strict validation → private persistence → minimal audit；其用于针对性追问的行为由后续 `JF-P1-03` 在消费已冻结契约后单独定义。`JF-P1-04` 不在本决策中预设字段或实现。
+- **Failure / Privacy**：openai_compatible 的 timeout、Provider / HTTP error 或无效 Schema 输出复用既有 `AI_*` 语义。所有失败均 fail-closed：不写入该轮 answer、SemanticJudgment、Evidence、AnswerAssessment、Memory、RetrievalTrace、Report 或 Session Version，仅追加最小失败 `LLMInvocation` 审计。审计和 Judgment 不得保存 API key、Authorization、完整 Prompt、完整原始 Provider response 或错误正文；mock/stub 验证使用 synthetic/de-identified 文本，真实网络与 V5 观察仍需独立执行。
+- **Compatibility / Migration Impact**：允许且要求 P1 专属 migration；不重构、迁移或重算 P0 tables / 历史数据，不新增公开 API、前端读取、外部知识库或独立 Semantic Provider 配置。
+- **Verification / Gate**：A1 已由本次项目负责人授权满足。V2（local/mock）已覆盖严格 Schema、成功持久化、调用关联、确定性回归、synthetic/de-identified OpenAI-compatible mock、失败原子性、幂等 / 旧题保护、migration upgrade / downgrade 与安全数据最小化测试。真实网络调用与 production / V5 观察均为 pending。A2 未触发：公开语义与 P0 owner 未改变；A3 不适用。
+- **Supersedes / Superseded By**：不取代 D-009、D-010 或 D-011；为 `JF-P1-02` 提供 phase-specific 执行边界。当前未被后续决策取代。
+
+## D-015：Current Baseline Browser Delivery Validation 边界
+
+- **日期**：2026-09-09。
+- **状态**：approved。
+- **来源**：项目负责人明确批准 `JF-DLV-05` 作为独立的非 P1 基线交付验证任务，并要求保留 `JF-P1-09 → JF-P1-08` 的既有依赖。
+- **Decision**：`JF-DLV-05` 只验证当前已实现的 JobFit 主路径：fresh-clone 依赖安装、默认 SQLite migration / 启动、前端生产构建，以及候选人的本地人工 Browser Golden Journey。它不属于 `JF-P1-09`，不改变 P1-02 至 P1-09 的状态、顺序、依赖或完成口径。
+- **Scope / Privacy**：验证使用本地 deterministic Runtime、合成简历与演示账号。浏览器语音转文字仅将用户确认后的文本以既有 `speech_to_text` 标记提交；不得上传、录制、保存、回放或处理音频、视频、摄像头或行为数据。
+- **Compatibility / Migration Impact**：允许为文件型 SQLite URL 自动创建数据库父目录，以修复 fresh clone 默认 `backend/data/` 缺失导致 migration 失败的问题；不改变默认数据库 URL、Alembic 链、公开 API、数据模型或历史数据。前端只修复既有 `input_method` 来源透传，不新增 wire shape。
+- **Verification / Gate**：A1 已由本次项目负责人授权满足。机械检查最多分别证明 V1 / V2 / V3；只有在指定本地浏览器中完成登录、评估、至少八轮面试、一次真实语音转文字确认、降级文本回退和报告生成的人工观察后，才可记录 V4（local / manual）。A2 在机器验证后复核；A3 不适用，除非发生提交、发布、部署或生产操作。
+- **P1 Isolation**：`JF-P1-09` 继续依赖 `JF-P1-08`。`JF-DLV-05` 的通过不得被描述为 Browser E2E / Demo Validation Phase 已完成，也不得证明真实 Provider、production、通用浏览器兼容性或后续 P1 Runtime。
+- **Supersedes / Superseded By**：不取代 D-004、D-010 或 D-014；当前未被后续决策取代。
+
+## D-016：P1-03 受控语义焦点追问与固定 Runtime 边界
+
+- **日期**：2026-09-09。
+- **状态**：approved。
+- **来源**：项目负责人要求在已冻结的 `JF-P1-02` 输出契约后实施 `JF-P1-03`，并明确 LLM 不得接管 Competency Switching、Interview End、最终评分或 Session State。项目负责人于 2026-09-09 明确选择：同一 competency 的 P1-03 `base_focus` 采用服务端固定的缺失维度优先顺序。
+- **Decision**：`JF-P1-03` 只在既有固定 `NextAction`、目标 competency 和 difficulty 已由 deterministic Runtime 决定后，使用当前 Candidate Answer 的私有 Semantic Judgment、既有 Evidence Memory、Summary Memory 是否存在和 Competency Context，选择一个受白名单约束的追问焦点，并据此构造下一题的 deterministic template。同一 competency 时，先从 `missing_dimensions` 集合按服务端固定顺序 `personal_action → measurable_result → tradeoff → boundary → failure_handling` 选择 `base_focus`，再处理 contradiction、低 confidence、Evidence、Summary Memory 和兜底规则；切换 competency 时安全重置为 `personal_action`。该规则只约束 P1-03 `base_focus`，不重排 P1-04，也不修改后续阶段的独立 effective-focus policy。它不新增第二套 Semantic Judgment、Memory、Evidence 或公开 API。
+- **Trust Boundary**：只允许消费 Semantic Judgment 的枚举化 `missing_dimensions`、是否存在 contradiction 和 bounded confidence；Provider 返回的缺失列表顺序不拥有控制权。不得将 LLM summary、contradiction detail、候选人原文、Memory 原文或外部资料原文直接插入用户可见题目。追问文字只能由服务端固定模板、当前能力项和 whitelist focus 组成。这样 Prompt injection 或不可信语义输出不能改变题目以外的 Runtime，也不能注入任意文本。
+- **P0 Freeze**：`_assess()`、`_decide()`、State Machine、Session lifecycle / version / idempotency、Evidence persistence / validation、difficulty、Competency Switching、Interview End、Report scoring / formula 继续由 deterministic Runtime 唯一控制。P1-03 不新增 action 枚举，不改变已决定的 action；只改变该 action 下的下一问焦点与措辞。
+- **Provider / External Gap**：显式 deterministic 模式完整支持本地受控自适应模板。P1-03 自身不发起 external adaptive request；P1-02 的显式 openai_compatible semantic path 仅传输 synthetic/de-identified profile。真实 Provider 的 adaptive prompt 扩展、命名真实网络观察与 V5 / production 验证仍需单独决策。
+- **Compatibility / Verification**：不新增 migration 或前端 / HTTP contract；沿用私有 `SemanticJudgment`、既有 `InterviewMessage.question_strategy` 与 `LLMInvocation` 追溯。本轮 V2（local/mock）已验证 server-ordered missing-dimension base-focus：不同 missing / contradiction / memory / evidence 输入生成不同的白名单焦点，action / difficulty / competency / state / scoring 不变，重复请求与旧题不重复触发，且 semantic evaluation 不可用时阻断 follow-up。P1-03 定向 7 项与完整后端 95 项 pytest 均通过。A1 已满足；A2 已由本轮项目负责人对题目焦点优先级的明确选择解决；A3 不适用。真实 Provider、外部网络和 V5 / production 仍 blocked / pending。
+- **Supersedes / Superseded By**：不取代 D-014；P1-03 只消费其冻结 contract。当前未被后续决策取代。
+
+## D-017：P1-04 内置 BM25 Grounded Interview Reasoning 与私有 Trace
+
+- **日期**：2026-09-09。
+- **状态**：approved。
+- **来源**：项目负责人此前选择 P1-04 采用“内置 BM25 + 内部追溯”，并要求在 P1-02 / P1-03 实现后基于实际冻结的 Semantic Judgment 与 Follow-up Context 定义 P1-04。
+- **Decision**：`JF-P1-04` 只使用现有、版本化的内置岗位模板 BM25，不引入外部知识库、向量数据库、在线资料同步、自由 JD 语义建模或新公开 API。RAG 在 P1-03 已确定 whitelist focus 后，从同岗位 / 同能力项的已检索资料中选取受信任的 Evidence Requirement，以 grounded template 补充当前下一问，并私有持久化该 reasoning 的 source ids、scores、knowledge version、focus、requirement、source answer 与 SemanticJudgment 关联。
+- **P0 / P1-03 Freeze**：RAG 只能影响同一已决定 action 下的追问依据和题目措辞。它不得修改 `_assess()`、`_decide()`、NextAction、difficulty、competency switching、session lifecycle / version / idempotency、Evidence persistence / validation、Report scoring / formula，也不得创建第二套 Semantic Judgment 或 Follow-up Context。P1-03 的 whitelist focus 是 P1-04 的输入，不被 RAG 覆盖。
+- **Trust / Privacy Boundary**：用户可见题目只能使用内置岗位模板中受信任、长度受限的 Evidence Requirement；不得写入 Candidate Answer、LLM summary、contradiction detail、Memory 原文、检索 chunk 全文或外部资料原文。`rag_reasoning_traces` 仅后端内部使用，不新增 Router / DTO；审计不得保存完整 prompt、完整 answer、API key、Authorization、Provider response 或错误正文。
+- **External Gap**：P1-04 不增加外部调用。P1-02 的显式 openai_compatible semantic path 仅传输 synthetic/de-identified profile；P1-04 的 external RAG、命名真实 Provider、V5 与 production 观察均不在本决策范围内。
+- **Compatibility / Verification**：允许独立 P1 migration 创建 private trace；不修改 P0 tables 或历史数据。V2（local/mock）已证明内置 BM25 source / knowledge version 参与 template grounding 并留存 private trace，RAG 仅改变同 action 下的 trusted requirement，不影响 P0 actions / scores / state，失败 / 幂等 / 旧题保护保持，且没有外部请求。A1 已满足；A2 未触发（无公开或 P0 语义变化）；A3 不适用。外部 RAG / Provider、V5 / production 仍 blocked / pending。
+- **Supersedes / Superseded By**：不取代 D-014 或 D-016；只消费两者的冻结输入。当前未被后续决策取代。
+
+## D-018：P1-05 私有 Evidence / Boundary Hardening 与受控追问
+
+- **日期**：2026-09-09。
+- **状态**：approved。
+- **来源**：项目负责人明确批准 `JF-P1-05` 实施计划，并选择“受控追问层”与“仅当前回答文本”的核验边界。
+- **Decision**：`JF-P1-05` 新增仅后端可访问、版本化的 `evidence_boundary_judgments` 及独立 Alembic migration。每个成功判断唯一关联 source answer、session、question、competency、既有 `CompetencyEvidence` 与私有 `SemanticJudgment`，并保存 schema / policy version、P1-03 base focus、最终 effective focus、是否实际覆盖及受限结构化 payload。它不是第二套 `AnswerAssessment` 或 `CompetencyEvidence`，也不得重算或改写 P0 结果。
+- **Policy / Trust Boundary**：纯 deterministic policy 只读取当前 Candidate Answer、既有 P0 assessment signal 与同轮 strict Semantic Judgment。Evidence strength 仅将既有 P0 strength 映射为 `weak`、`partial`、`sufficient`；Ownership 仅表示当前文本是否展示第一人称归属与明确行动；Contradiction 仅投影 strict Judgment 的受限 kind；Boundary 仅识别当前文本中受限的边界、约束、取舍或故障恢复信号。所有“not_demonstrated”或“needs_clarification”均表示需要澄清，绝不声称候选人陈述为假。
+- **Follow-up Boundary**：只有 P0 已决定继续同一 competency 时，P1-05 才在 P1-03 已选择的 whitelist focus 上按固定优先级选择既有 focus：contradiction → `boundary`，ownership 缺失 → `personal_action`，strength 未达 sufficient → `measurable_result`，boundary 缺失 → `boundary`。若 P0 切换 competency 或结束面试，P1-05 记录为未覆盖并保留既有流程。它不新增 action、focus 枚举、Router、DTO 或前端读取；P1-04 继续只用最终 whitelist focus 与 trusted requirement 构造题目。
+- **Privacy / Failure**：新增 payload 只能保存 enum、threshold band 和固定 reason code，不得保存 Candidate Answer、Evidence signal 副本、LLM summary、contradiction detail、Prompt、Provider response、API key、Authorization 或错误正文。Hardening 的严格构造或持久化失败必须使本轮 fail-closed；不允许静默绕过追溯或写入部分业务数据。P1-05 不增加 Provider、网络、外部 RAG 或外部数据处理调用。
+- **P0 Freeze / Compatibility**：`AnswerAssessment`、`CompetencyEvidence` 的 strength / polarity / verified / supported_level、Evidence persistence / validation、State Machine、Session lifecycle / version / idempotency、competency switching、结束条件、Report scoring / formula 和现有 HTTP wire shape 保持不变。允许且要求只创建 P1 专属表，不重构、迁移或重算 P0 tables / 历史数据。
+- **Verification / Gate**：A1 已由项目负责人本轮批准满足。V2（local/mock）已覆盖严格 payload、同能力项 focus override、P0 freeze、隐私最小化、hardening failure 原子回滚、duplicate / stale protection、`0008 → 0009 → 0008` migration 与 security scan；定向相邻回归 53 passed，完整后端 pytest 90 passed，Ruff、Mypy（60 source files）与 `git diff --check` 通过。A2 未触发：D-018 已批准唯一的 user-visible focus 调整，且公开 API / P0 语义保持不变；A3 不适用，未执行部署、发布、production migration 或真实外部数据服务操作。真实 Provider、外部数据处理服务、V5 / production 观察仍 blocked / pending。
+- **Supersedes / Superseded By**：不取代 D-014、D-016 或 D-017；P1-05 只消费其冻结的 Semantic Judgment、Follow-up focus 和 grounded template 输入。当前未被后续决策取代。

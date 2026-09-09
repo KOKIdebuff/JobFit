@@ -88,7 +88,7 @@ def test_adaptive_interview_persists_evidence_memory_rag_and_report(
                 json={
                     "question_id": interview["current_question"],
                     "answer": answer,
-                    "input_method": "text",
+                    "input_method": "speech_to_text" if index == 1 else "text",
                     "client_request_id": f"request-{index:04d}",
                     "expected_session_version": interview["version"],
                 },
@@ -105,6 +105,10 @@ def test_adaptive_interview_persists_evidence_memory_rag_and_report(
 
     restored = _data(client.get(f"/api/v1/interview-sessions/{session_id}"))
     assert restored["turn_count"] == interview["turn_count"]
+    assert any(
+        message["role"] == "user" and message["input_method"] == "speech_to_text"
+        for message in restored["messages"]
+    )
     evidence = _data(client.get(f"/api/v1/interview-sessions/{session_id}/evidence"))
     assert len(evidence["evidence"]) == interview["turn_count"]
     assert max(item["supported_level"] for item in evidence["evidence"]) >= 3

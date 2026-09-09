@@ -272,3 +272,18 @@ def test_sqlite_engine_enables_foreign_keys_and_busy_timeout(
 
     assert foreign_keys == 1
     assert busy_timeout == 7_500
+
+
+def test_file_backed_sqlite_engine_creates_a_missing_parent_directory(tmp_path: Path) -> None:
+    database_path = tmp_path / "nested" / "jobfit.db"
+    settings = Settings(database_url=f"sqlite:///{database_path.as_posix()}")
+    engine = create_database_engine(settings)
+
+    try:
+        with engine.connect():
+            pass
+    finally:
+        engine.dispose()
+
+    assert database_path.parent.is_dir()
+    assert database_path.is_file()

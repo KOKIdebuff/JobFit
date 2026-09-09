@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from io import BytesIO
 from json import dumps, loads
 from typing import Any, cast
@@ -16,14 +17,27 @@ from app.core.config import Settings
 from app.core.exceptions import AppException
 from app.core.time import utc_now
 from app.modules.auth_users.schemas import AuthUser
-from app.modules.jobfit.llm import (
-    PROMPT_VERSION as LLM_QUESTION_PROMPT_VERSION,
+from app.modules.jobfit.evidence_hardening import (
+    EVIDENCE_BOUNDARY_JUDGMENT_SCHEMA_VERSION,
+    EVIDENCE_BOUNDARY_POLICY_VERSION,
+    EvidenceBoundaryFocusDecision,
+    EvidenceBoundaryPolicyError,
+    build_evidence_boundary_judgment,
+    select_effective_focus,
 )
+from app.modules.jobfit.llm import PROMPT_VERSION as LLM_QUESTION_PROMPT_VERSION
 from app.modules.jobfit.llm import (
+    SEMANTIC_JUDGMENT_PROMPT_VERSION,
+    SEMANTIC_JUDGMENT_SCHEMA_VERSION,
     FollowUpRequest,
     LLMQuestionError,
     LLMQuestionResult,
+    SemanticDimension,
+    SemanticEvaluationRequest,
+    SemanticJudgmentResponse,
+    SemanticJudgmentResult,
     provider_for,
+    semantic_provider_for,
 )
 from app.modules.jobfit.models import (
     AnswerAssessment,
@@ -31,13 +45,16 @@ from app.modules.jobfit.models import (
     AssessmentReport,
     CandidateCompetencyProfile,
     CompetencyEvidence,
+    EvidenceBoundaryJudgment,
     InterviewMemory,
     InterviewMessage,
     InterviewSession,
     JobCompetency,
     JobCompetencyProfile,
     LLMInvocation,
+    RAGReasoningTrace,
     RetrievalTrace,
+    SemanticJudgment,
 )
 from app.modules.jobfit.profiles import COMPETENCY_PROFILES, profile_for
 from app.modules.jobfit.retrieval import KNOWLEDGE_VERSION, retrieve
@@ -59,6 +76,72 @@ def _public(prefix: str) -> str:
 
 def _bounded(value: float) -> float:
     return round(max(0.0, min(1.0, value)), 3)
+
+
+ADAPTIVE_FOCUS_LABELS: dict[SemanticDimension, str] = {
+    "personal_action": "个人行动与职责",
+    "measurable_result": "可验证结果与指标",
+    "tradeoff": "方案取舍依据",
+    "boundary": "适用条件与能力边界",
+    "failure_handling": "失败处理与恢复方式",
+}
+ADAPTIVE_FOCUS_PRIORITY: tuple[SemanticDimension, ...] = (
+    "personal_action",
+    "measurable_result",
+    "tradeoff",
+    "boundary",
+    "failure_handling",
+)
+RAG_REASONING_VERSION = "jobfit_rag_reasoning_v1"
+
+
+@dataclass(frozen=True, slots=True)
+class RAGReasoningContext:
+    focus: SemanticDimension
+    requirement: str
+    source_ids: list[str]
+    scores: list[float]
+    knowledge_version: str = KNOWLEDGE_VERSION
+
+
+def _missing_dimension_focus(judgment: SemanticJudgmentResponse) -> SemanticDimension | None:
+    """Choose a missing dimension in server-defined order, not provider list order."""
+    missing_dimensions = set(judgment.missing_dimensions)
+    for focus in ADAPTIVE_FOCUS_PRIORITY:
+        if focus in missing_dimensions:
+            return focus
+    return None
+
+
+def _adaptive_focus(
+    judgment: SemanticJudgmentResponse,
+    competency_id: str,
+    evidence_memory: list[dict[str, Any]],
+    has_summary_memory: bool,
+) -> SemanticDimension:
+    """Select only a whitelist focus; never return untrusted model or memory text."""
+    missing_focus = _missing_dimension_focus(judgment)
+    if missing_focus is not None:
+        return missing_focus
+    if judgment.contradictions:
+        return "boundary"
+    if judgment.confidence < 0.5:
+        return "personal_action"
+    competency_evidence = [
+        item for item in evidence_memory if item.get("competency_id") == competency_id
+    ]
+    if competency_evidence:
+        strengths: list[float] = []
+        for item in competency_evidence:
+            strength = item.get("strength")
+            if isinstance(strength, (int, float)) and not isinstance(strength, bool):
+                strengths.append(float(strength))
+        if strengths and min(strengths) < 0.65:
+            return "measurable_result"
+        return "boundary"
+    if has_summary_memory:
+        return "failure_handling"
+    return "tradeoff"
 
 
 class JobFitService:
@@ -481,6 +564,7 @@ class JobFitService:
             "uncertainty": uncertainty,
             "supported_level": min(supported_level, difficulty + 1),
             "has_example": has_action,
+            "has_number": has_number,
             "has_tradeoff": has_tradeoff,
             "missing_points": [
                 label
@@ -532,12 +616,13 @@ class JobFitService:
         model: str | None = None,
         prompt_version: str | None = None,
         knowledge_version: str | None = None,
+        purpose: str = "follow_up_from_answer",
     ) -> LLMInvocation:
         invocation = LLMInvocation(
             public_id=_public("llm"),
             session_id=interview.id,
             turn_index=turn_index,
-            purpose="follow_up_from_answer",
+            purpose=purpose,
             provider=provider or self.settings.llm_provider,
             model=model or self.settings.llm_model or "deterministic-v1",
             prompt_version=prompt_version or LLM_QUESTION_PROMPT_VERSION,
@@ -557,6 +642,125 @@ class JobFitService:
             return "", []
         return memory.summary_memory, cast(list[dict[str, Any]], _load(memory.evidence_memory_json))
 
+    def _generate_semantic_judgment(
+        self,
+        *,
+        job: JobCompetencyProfile,
+        competency: JobCompetency,
+        question: InterviewMessage,
+        answer: str,
+        deterministic_assessment: dict[str, Any],
+    ) -> SemanticJudgmentResult:
+        covered_dimensions: list[str] = []
+        missing_dimensions: list[str] = []
+        if deterministic_assessment["has_example"]:
+            covered_dimensions.append("personal_action")
+        else:
+            missing_dimensions.append("personal_action")
+        if deterministic_assessment["has_number"]:
+            covered_dimensions.append("measurable_result")
+        else:
+            missing_dimensions.append("measurable_result")
+        if deterministic_assessment["has_tradeoff"]:
+            covered_dimensions.extend(["tradeoff", "boundary"])
+        else:
+            missing_dimensions.extend(["tradeoff", "boundary"])
+        if re.search(r"故障|失败|回退|复盘|止损|重试|降级|恢复", answer):
+            covered_dimensions.append("failure_handling")
+        else:
+            missing_dimensions.append("failure_handling")
+        request = SemanticEvaluationRequest(
+            job_title=job.title,
+            competency_name=competency.name,
+            competency_description=competency.description,
+            question_text=question.content,
+            question_strategy=question.question_strategy,
+            difficulty=question.difficulty,
+            answer=answer,
+            deterministic_covered_dimensions=cast(list[Any], covered_dimensions),
+            deterministic_missing_dimensions=cast(list[Any], missing_dimensions),
+            deterministic_confidence=_bounded(1 - deterministic_assessment["uncertainty"]),
+        )
+        return semantic_provider_for(self.settings).generate_semantic_judgment(request)
+
+    def _adaptive_follow_up_focus(
+        self,
+        *,
+        interview: InterviewSession,
+        current_competency: JobCompetency,
+        next_competency: JobCompetency,
+        semantic_result: SemanticJudgmentResult,
+    ) -> SemanticDimension:
+        summary_memory, evidence_memory = self._memory_context(interview)
+        if current_competency.competency_id == next_competency.competency_id:
+            return _adaptive_focus(
+                semantic_result.judgment,
+                next_competency.competency_id,
+                evidence_memory,
+                bool(summary_memory),
+            )
+        return "personal_action"
+
+    def _rag_reasoning_context(
+        self,
+        *,
+        job: JobCompetencyProfile,
+        competency: JobCompetency,
+        focus: SemanticDimension,
+    ) -> RAGReasoningContext | None:
+        query = f"{competency.name} {ADAPTIVE_FOCUS_LABELS[focus]}"
+        retrieved = retrieve(job.job_role, competency.competency_id, query)
+        expected_source = f"{KNOWLEDGE_VERSION}:{job.job_role}:{competency.competency_id}"
+        matching = [
+            item
+            for item in retrieved
+            if item.get("source_id") == expected_source
+            and item.get("competency_id") == competency.competency_id
+        ]
+        requirements = _load(competency.evidence_requirements_json)
+        if not matching or not isinstance(requirements, list) or not requirements:
+            return None
+        requirement_index = {
+            "personal_action": 0,
+            "measurable_result": 1,
+            "tradeoff": 1,
+            "boundary": 2,
+            "failure_handling": 2,
+        }[focus]
+        requirement = requirements[min(requirement_index, len(requirements) - 1)]
+        if not isinstance(requirement, str) or not requirement.strip():
+            return None
+        source_ids = [item["source_id"] for item in matching]
+        scores = [
+            float(item["score"])
+            for item in matching
+            if isinstance(item.get("score"), (int, float))
+            and not isinstance(item.get("score"), bool)
+        ]
+        return RAGReasoningContext(
+            focus=focus,
+            requirement=requirement.strip()[:240],
+            source_ids=source_ids,
+            scores=scores,
+        )
+
+    def _adaptive_follow_up_template(
+        self,
+        *,
+        interview: InterviewSession,
+        job: JobCompetencyProfile,
+        competency: JobCompetency,
+        action: NextAction,
+        difficulty: int,
+        focus: SemanticDimension,
+        rag_context: RAGReasoningContext | None,
+    ) -> str:
+        summary_memory, _ = self._memory_context(interview)
+        base = self._question(job, competency, action, None, difficulty)
+        transition = "请结合前面已确认的上下文，" if summary_memory else ""
+        grounding = f" 岗位证据要求：{rag_context.requirement}。" if rag_context is not None else ""
+        return f"{transition}{base} 这轮请重点补充{ADAPTIVE_FOCUS_LABELS[focus]}。{grounding}"
+
     def _generate_next_question(
         self,
         *,
@@ -567,6 +771,7 @@ class JobFitService:
         previous_answer: str,
         difficulty: int,
         retrieved: list[dict[str, Any]],
+        template_question: str,
     ) -> tuple[str, LLMQuestionResult | None]:
         summary_memory, evidence_memory = self._memory_context(interview)
         request = FollowUpRequest(
@@ -580,7 +785,7 @@ class JobFitService:
             knowledge_version=KNOWLEDGE_VERSION,
             summary_memory=summary_memory,
             evidence_memory=evidence_memory,
-            template_question=self._question(job, competency, action, previous_answer, difficulty),
+            template_question=template_question,
         )
         result = provider_for(self.settings).generate_follow_up(request)
         return result.question, result
@@ -627,6 +832,52 @@ class JobFitService:
         )
         interview.status = InterviewStatus.EVALUATING
         result = self._assess(payload.answer, interview.current_difficulty)
+        try:
+            semantic_result = self._generate_semantic_judgment(
+                job=job,
+                competency=competency,
+                question=question,
+                answer=payload.answer,
+                deterministic_assessment=result,
+            )
+        except LLMQuestionError as exc:
+            self.session.rollback()
+            self._record_llm_invocation(
+                interview=interview,
+                turn_index=question.turn_index,
+                purpose="semantic_answer_evaluation",
+                status="failed",
+                error_code=exc.code,
+                duration_ms=exc.duration_ms,
+                model=self.settings.llm_model or "deterministic-semantic-baseline-v1",
+                prompt_version=SEMANTIC_JUDGMENT_PROMPT_VERSION,
+                knowledge_version="not_applicable",
+            )
+            self.session.commit()
+            raise AppException(exc.code, message=str(exc)) from exc
+        try:
+            hardening_payload = build_evidence_boundary_judgment(
+                answer=payload.answer,
+                evidence_strength=result["evidence_strength"],
+                semantic_judgment=semantic_result.judgment,
+            )
+        except EvidenceBoundaryPolicyError as exc:
+            self.session.rollback()
+            self._record_llm_invocation(
+                interview=interview,
+                turn_index=question.turn_index,
+                purpose="semantic_answer_evaluation",
+                status="failed",
+                error_code=ErrorCode.AI_INVALID_OUTPUT,
+                model=self.settings.llm_model or "deterministic-semantic-baseline-v1",
+                prompt_version=SEMANTIC_JUDGMENT_PROMPT_VERSION,
+                knowledge_version="not_applicable",
+            )
+            self.session.commit()
+            raise AppException(
+                ErrorCode.AI_INVALID_OUTPUT,
+                message="semantic judgment cannot be hardened safely",
+            ) from exc
         competency_turns = (
             len(
                 list(
@@ -648,6 +899,12 @@ class JobFitService:
         retrieved: list[dict[str, Any]] = []
         next_question = ""
         llm_result: LLMQuestionResult | None = None
+        rag_context: RAGReasoningContext | None = None
+        hardening_focus = EvidenceBoundaryFocusDecision(
+            base_focus=None,
+            effective_focus=None,
+            applied=False,
+        )
         if action != NextAction.END_INTERVIEW:
             if action == NextAction.INCREASE_DIFFICULTY:
                 next_difficulty = min(5, interview.current_difficulty + 1)
@@ -662,6 +919,35 @@ class JobFitService:
                 next_competency = competencies[(index + 1) % len(competencies)]
                 next_difficulty = max(1, job.difficulty)
             retrieved = retrieve(job.job_role, next_competency.competency_id, payload.answer)
+            base_focus = self._adaptive_follow_up_focus(
+                interview=interview,
+                current_competency=competency,
+                next_competency=next_competency,
+                semantic_result=semantic_result,
+            )
+            hardening_focus = select_effective_focus(
+                judgment=hardening_payload,
+                base_focus=base_focus,
+                applies_to_same_competency=(
+                    competency.competency_id == next_competency.competency_id
+                ),
+            )
+            focus = hardening_focus.effective_focus
+            assert focus is not None
+            rag_context = self._rag_reasoning_context(
+                job=job,
+                competency=next_competency,
+                focus=focus,
+            )
+            template_question = self._adaptive_follow_up_template(
+                interview=interview,
+                job=job,
+                competency=next_competency,
+                action=action,
+                difficulty=next_difficulty,
+                focus=focus,
+                rag_context=rag_context,
+            )
             try:
                 next_question, llm_result = self._generate_next_question(
                     interview=interview,
@@ -671,6 +957,7 @@ class JobFitService:
                     previous_answer=payload.answer,
                     difficulty=next_difficulty,
                     retrieved=retrieved,
+                    template_question=template_question,
                 )
             except LLMQuestionError as exc:
                 self.session.rollback()
@@ -697,6 +984,33 @@ class JobFitService:
         )
         self.session.add(answer)
         self.session.flush()
+        semantic_invocation = self._record_llm_invocation(
+            interview=interview,
+            turn_index=question.turn_index,
+            purpose="semantic_answer_evaluation",
+            status="succeeded",
+            duration_ms=semantic_result.duration_ms,
+            provider=semantic_result.provider,
+            model=semantic_result.model,
+            prompt_version=semantic_result.prompt_version,
+            knowledge_version="not_applicable",
+        )
+        self.session.flush()
+        semantic_judgment = SemanticJudgment(
+            public_id=_public("semantic"),
+            session_id=interview.id,
+            question_id=question.public_id,
+            answer_id=answer.public_id,
+            competency_id=competency.competency_id,
+            llm_invocation_id=semantic_invocation.id,
+            schema_version=SEMANTIC_JUDGMENT_SCHEMA_VERSION,
+            prompt_version=semantic_result.prompt_version,
+            provider=semantic_result.provider,
+            model=semantic_result.model,
+            judgment_json=_json(semantic_result.judgment.model_dump(mode="json")),
+        )
+        self.session.add(semantic_judgment)
+        self.session.flush()
         evidence = CompetencyEvidence(
             public_id=_public("evidence"),
             session_id=interview.id,
@@ -710,6 +1024,38 @@ class JobFitService:
             verified=result["evidence_strength"] >= 0.65,
         )
         self.session.add(evidence)
+        self.session.flush()
+        self.session.add(
+            EvidenceBoundaryJudgment(
+                session_id=interview.id,
+                question_id=question.public_id,
+                answer_id=answer.public_id,
+                competency_id=competency.competency_id,
+                competency_evidence_id=evidence.id,
+                semantic_judgment_id=semantic_judgment.id,
+                schema_version=EVIDENCE_BOUNDARY_JUDGMENT_SCHEMA_VERSION,
+                policy_version=EVIDENCE_BOUNDARY_POLICY_VERSION,
+                base_focus=hardening_focus.base_focus,
+                effective_focus=hardening_focus.effective_focus,
+                applied=hardening_focus.applied,
+                judgment_json=_json(hardening_payload.model_dump(mode="json")),
+            )
+        )
+        if rag_context is not None:
+            self.session.add(
+                RAGReasoningTrace(
+                    session_id=interview.id,
+                    answer_id=answer.public_id,
+                    semantic_judgment_id=semantic_judgment.id,
+                    competency_id=next_competency.competency_id,
+                    focus=rag_context.focus,
+                    requirement=rag_context.requirement,
+                    source_ids_json=_json(rag_context.source_ids),
+                    scores_json=_json(rag_context.scores),
+                    knowledge_version=rag_context.knowledge_version,
+                    reasoning_version=RAG_REASONING_VERSION,
+                )
+            )
         self.session.add(
             AnswerAssessment(
                 public_id=_public("assessment"),
@@ -769,7 +1115,7 @@ class JobFitService:
         dto["last_answer_assessment"] = {
             key: value
             for key, value in result.items()
-            if key not in {"has_example", "has_tradeoff"}
+            if key not in {"has_example", "has_number", "has_tradeoff"}
         }
         dto["next_action"] = action
         dto["new_evidence"] = self.evidence_dto(evidence)

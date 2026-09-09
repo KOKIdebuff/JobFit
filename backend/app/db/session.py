@@ -1,13 +1,30 @@
 from collections.abc import Generator
 from functools import lru_cache
+from pathlib import Path
 
 from fastapi import Depends
 from sqlalchemy import Engine, create_engine, event
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import Settings, get_settings
 
 SETTINGS_DEPENDENCY = Depends(get_settings)
+
+
+def ensure_sqlite_parent_directory(database_url: str) -> None:
+    """Create the parent directory for a file-backed SQLite database when needed."""
+    url = make_url(database_url)
+    database = url.database
+    if (
+        not url.drivername.startswith("sqlite")
+        or not database
+        or database == ":memory:"
+        or database.startswith("file:")
+    ):
+        return
+
+    Path(database).expanduser().parent.mkdir(parents=True, exist_ok=True)
 
 
 def _configure_sqlite_engine(engine: Engine, sqlite_busy_timeout_ms: int) -> None:
@@ -26,6 +43,7 @@ def _configure_sqlite_engine(engine: Engine, sqlite_busy_timeout_ms: int) -> Non
 def _engine_for_config(database_url: str, sqlite_busy_timeout_ms: int) -> Engine:
     connect_args: dict[str, object] = {}
     if database_url.startswith("sqlite"):
+        ensure_sqlite_parent_directory(database_url)
         connect_args["check_same_thread"] = False
         connect_args["timeout"] = sqlite_busy_timeout_ms / 1_000
 

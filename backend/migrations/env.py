@@ -5,6 +5,7 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import get_settings
 from app.db.base import Base
+from app.db.session import ensure_sqlite_parent_directory
 from app.modules.ai_runs import models as ai_runs_models
 from app.modules.applications_matches import models as applications_matches_models
 from app.modules.auth_users import models as auth_users_models
@@ -51,6 +52,7 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     settings = get_settings()
+    ensure_sqlite_parent_directory(settings.database_url)
     configuration = config.get_section(config.config_ini_section, {})
     configuration["sqlalchemy.url"] = settings.database_url
     connectable = engine_from_config(

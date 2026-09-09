@@ -61,8 +61,15 @@ class Settings(BaseSettings):
         if self.environment == "production":
             if self.jwt_secret in {"", "jobfit-dev-only-change-me-32-byte-minimum"}:
                 raise ValueError("JOBFIT_JWT_SECRET must be configured in production")
-            if self.llm_provider == "deterministic" and not self.allow_demo_provider:
-                raise ValueError("deterministic provider is disabled in production")
+            if "llm_provider" not in self.model_fields_set:
+                raise ValueError("JOBFIT_LLM_PROVIDER must be explicitly configured in production")
+            if self.llm_provider == "deterministic" and (
+                "allow_demo_provider" not in self.model_fields_set or not self.allow_demo_provider
+            ):
+                raise ValueError(
+                    "production deterministic provider requires explicit "
+                    "JOBFIT_ALLOW_DEMO_PROVIDER=true"
+                )
         if self.llm_provider == "openai_compatible" and not (
             self.llm_base_url and self.llm_api_key and self.llm_model
         ):

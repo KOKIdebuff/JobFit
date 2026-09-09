@@ -116,19 +116,69 @@ development / test 默认值与 production 的显式选择准入由 D-011 分别
 Ready；External Provider Validation 仍为 pending。完整技术与执行边界见
 [P1 Implementation Protocol](./p1-implementation-protocol.md)。
 
+### 4.7 JF-P1-02：私有 Semantic Judgment
+
+`JF-P1-02` 是 Current / As-Is 的 V2（local/mock）路径：每轮候选人回答会先得到不接管 P0 的严格、版本化
+Semantic Judgment，并以私有 `semantic_judgments` 记录 answer / session / question / competency、schema / prompt /
+provider / model 版本、受限 payload 与 `LLMInvocation` 关联。它不新增 HTTP endpoint、前端读取、第二套最终评分、
+Evidence 写入规则或状态机转换。
+
+显式 deterministic 模式使用可追溯的本地结构化基线。项目负责人已授权 openai_compatible 的 P1-02 语义能力，但
+外部 payload 只能包含本地构造的 `synthetic_candidate_profile`：语义维度、置信度、回答长度档位、题目策略与难度；
+不得包含原始 Candidate Answer、问题原文、岗位描述或可识别候选人信息。当前验证全部使用 mock/stub 与合成文本；
+未发生命名真实 Provider 调用，不构成 V5 或 production 运行证据。后续 `JF-P1-03` 只消费已冻结的 Judgment contract；
+`JF-P1-04` 不在此路径中预设 RAG 推理字段。
+
+### 4.8 JF-P1-03：受控自适应追问焦点
+
+`JF-P1-03` 是 Current / As-Is 的 V2（local/mock）路径：在 `_decide()` 已确定 action、difficulty 与 competency 后，
+服务端只读取当前 Semantic Judgment 的白名单枚举、是否存在 contradiction、同能力 Evidence 的结构化强度以及
+Summary Memory 是否存在，并从固定 focus 模板中选择下一问要补充的重点。同一 competency 存在缺失维度时，
+服务端按 `personal_action → measurable_result → tradeoff → boundary → failure_handling` 的固定顺序选择 P1-03
+`base_focus`，不会采用 Provider 返回数组顺序；跨 competency 时安全重置为 `personal_action`。它可针对个人行动、
+可验证结果、取舍、边界或失败处理调整题目措辞。
+
+Candidate Answer、LLM summary、contradiction detail 和 Memory 原文不会被插入新的 user-visible template；P1-03
+不改变 `NextAction`、状态、版本、Evidence、评分、报告、HTTP API 或数据模型。P1-03 自身不发起外部 adaptive
+follow-up 调用；若 P1-02 显式选择 openai_compatible，其外部语义 payload 仍仅为 synthetic/de-identified profile。
+真实 Provider 的 adaptive prompt、外部网络与 V5 / production 观察仍需单独决策与观察。
+
+### 4.9 JF-P1-04：内置 BM25 Grounded Reasoning
+
+`JF-P1-04` 是 Current / As-Is 的 V2（local/mock）路径：在 P1-03 已选择白名单 focus 后，服务端使用同岗位、
+同能力项的版本化内置 BM25 source，选择当前岗位画像中对应的受信任 Evidence Requirement，并把它作为下一问的
+grounding 依据。`rag_reasoning_traces` 私有记录 source answer、Semantic Judgment、focus、requirement、source IDs、
+scores、knowledge version 与 reasoning version；该表没有公开 Router 或前端读取路径。
+
+RAG 不改变 P0 action、difficulty、competency、状态、Evidence、评分或报告，也不覆盖 P1-03 focus。即使检索返回
+伪造 chunk 文本或 requirement，用户可见题目仍只使用当前岗位画像中的受信任 requirement。当前没有外部知识库、
+向量数据库、网络 RAG 或外部 Provider；这些和 V5 / production 观察仍需在具体数据处理服务获授权后单独决策。
+
+### 4.10 JF-P1-05：私有 Evidence / Boundary Hardening
+
+`JF-P1-05` 是 Current / As-Is 的 V2（local/mock）路径：每轮成功回答会形成一个私有、版本化
+`evidence_boundary_judgments` 记录，关联 source answer、P0 Evidence 与 SemanticJudgment，并只保存 strength band、
+textual ownership、受限 contradiction kind、boundary status、固定 reason code 与 base / effective focus。它不保存
+Candidate Answer、Evidence signal 副本、LLM summary、contradiction detail、Prompt、Provider response 或凭据。
+
+固定 Runtime 仍先决定 P0 action、difficulty 与 competency；P1-03 给出 base focus 后，P1-05 只在同一 competency 的
+未结束下一问中按固定优先级选择既有 whitelist focus。切换 competency 或结束时不跨用 source answer judgment。P1-04
+继续只将最终 focus 映射到 trusted requirement；P1-05 不修改 P0 Evidence fields、评分、报告、状态、版本、HTTP API、
+Provider 或网络边界。
+
 ## 5. 数据模型与迁移
 
 当前 JobFit 迁移增加以下领域实体：
 
 - CandidateCompetencyProfile、JobCompetencyProfile、JobCompetency。
 - AssessmentCase、InterviewSession、InterviewMessage、AnswerAssessment。
-- CompetencyEvidence、InterviewMemory、RetrievalTrace、LLMInvocation、AssessmentReport。
+- CompetencyEvidence、EvidenceBoundaryJudgment、InterviewMemory、RetrievalTrace、LLMInvocation、SemanticJudgment、RAGReasoningTrace、AssessmentReport。
 
 旧招聘平台的表和迁移不会被物理删除；文档将其标注为 legacy，避免误认为这些数据表仍由当前 Runtime 调用。
 
 ## 6. API 边界
 
-当前 JobFit API 覆盖岗位模板、简历、候选人画像、岗位画像、评估、面试会话、Evidence、记忆、检索轨迹和报告。精确请求、响应、错误与并发语义见 [Implementation Plan 的 P0 接口与契约基线](./implementation-plan.md)。
+当前 JobFit API 覆盖岗位模板、简历、候选人画像、岗位画像、评估、面试会话、Evidence、记忆、检索轨迹和报告。P1-01 至 P1-05 不增加公开 API；精确请求、响应、错误与并发语义见 [Implementation Plan 的 P0 接口与契约基线](./implementation-plan.md)。
 
 ## 7. 配置与 Provider 边界
 
@@ -142,27 +192,25 @@ Ready；External Provider Validation 仍为 pending。完整技术与执行边�
 Provider URL 仅允许 http(s)、不得含 userinfo、query 或 fragment，production 要求 HTTPS；请求关闭重定向
 跟随。Provider endpoint 和密钥只在服务端 Settings 中读取，浏览器不接收它们。
 
-当前观察到的 Settings 仍将 `llm_provider` 默认解析为 deterministic，并将
-`allow_demo_provider` 默认解析为 true；production 只在 deterministic 且 demo 许可关闭时拒绝启动。因此
-`D-011` 的生产 Provider 显式选择规则为 **Accepted / Not Implemented / Not Verified**，不能把该规则写成
-当前已生效的配置事实。
+Settings 保留 development / test 的 deterministic 默认值，但通过 Pydantic `model_fields_set` 区分默认值与
+显式 Settings 来源。production 必须显式配置 `JOBFIT_LLM_PROVIDER`，未配置即拒绝启动；显式 deterministic
+还必须显式配置 `JOBFIT_ALLOW_DEMO_PROVIDER=true`。显式 deterministic 仅是 demo/mock scope，不构成真实外部
+Provider 集成或 Production Ready 证据。`HIRELINK_ENVIRONMENT=production` 若使应用进入 production，仍不能替代
+对 `JOBFIT_LLM_PROVIDER` 的要求；不存在 `HIRELINK_LLM_*` Provider alias。openai_compatible 的配置错误、超时、
+调用失败或无效输出继续按 D-009 fail-closed，不得自动降级为 deterministic。
 
-D-011 的待实现配置契约为：development / test 未配置 Provider 时可以使用 deterministic 默认；production
-必须显式配置 `JOBFIT_LLM_PROVIDER`，未配置即拒绝启动；production 显式选择 deterministic 时，还必须显式
-配置 `JOBFIT_ALLOW_DEMO_PROVIDER=true`。显式 deterministic 仅是 demo/mock scope，不构成真实外部 Provider
-集成或 Production Ready 证据。`HIRELINK_ENVIRONMENT=production` 若使应用进入 production，仍不能替代对
-`JOBFIT_LLM_PROVIDER` 的要求。openai_compatible 的配置错误、超时、调用失败或无效输出继续按 D-009
-fail-closed，不得自动降级为 deterministic。
-
-当前 Runtime 已具备受控调用路径：首个开场问题保持确定性模板；后续未结束问题由显式 Provider 生成。
-local/mock 测试已覆盖 OpenAI-compatible Chat Completions 请求、超时/Provider/无效输出、BM25 Prompt 注入、
-失败原子性和 deterministic 回归；尚未取得真实外部 Provider 或 production 运行证据。
+该 D-011 配置准入已完成 V2（local/mock）验证：测试覆盖未显式 Provider、deterministic demo 许可、dotenv
+来源、legacy 环境 alias 与完整 HTTPS openai_compatible 配置。当前 Runtime 仍使用受控调用路径：首个开场问题
+保持确定性模板；后续未结束问题由显式 Provider 生成。现有 local/mock 测试继续覆盖 OpenAI-compatible Chat
+Completions 请求、超时/Provider/无效输出、BM25 Prompt 注入、失败原子性和 deterministic 回归；尚未取得真实
+外部 Provider 或 production 运行证据。
 
 ## 8. 安全与隐私
 
 - 文件按大小、类型、MIME、签名和可提取文本处理。
 - 认证与资源访问使用 Cookie、密码哈希和所有权校验。
 - Evidence 仅存储回答文本及其评估元数据。
+- P1-05 的 private hardening trace 不复制回答原文、Evidence signal、LLM summary / contradiction detail、Prompt、Provider response 或凭据；它只保存最小结构化判断与实体关联。
 - Provider Prompt 只携带受限的候选人回答、Summary / Evidence Memory 与 BM25 片段；这些内容均标记为不可信 data，超长内容显式标记截断。
 - LLMInvocation 只保存会话、源回答轮次、目的、Provider、模型、Prompt/知识版本、状态、耗时和归类错误；不保存密钥、Authorization、完整 Prompt、完整 Provider 响应或错误正文。
 - 不采集摄像头、音频、视频、浏览器行为或反作弊特征。
@@ -170,10 +218,10 @@ local/mock 测试已覆盖 OpenAI-compatible Chat Completions 请求、超时/Pr
 
 ## 9. Target / To-Be
 
-`JF-P1-01` 已属于 Current / As-Is，不是 Target 项。后续 `JF-P1-02` 至 `JF-P1-09` 的阶段目标为
-Semantic Answer Evaluation、Intelligent Adaptive Follow-up、RAG Interview Reasoning、Evidence / Boundary
-Hardening、Semantic Long-term Memory、Assessment Report Quality、Interviewer Persona 和 Browser E2E / Demo
-Validation；它们全部仍为 pending，未形成当前 Runtime。
+`JF-P1-01` 至 P1-05 的 local/mock 边界已属于 Current / As-Is，不是 Target 项。后续 `JF-P1-06` 至 `JF-P1-09`
+的阶段目标为 Semantic Long-term Memory、Assessment Report Quality、Interviewer Persona 和 Browser E2E / Demo
+Validation；它们仍为 pending，未形成当前 Runtime。具体外部数据处理服务、外部 RAG / Provider、真实网络与 V5 /
+production 验证仍不属于已完成能力。
 
 后续阶段不得以“补充 P1”为由改写 P0 的 Evidence、Memory、Report、评分公式或固定 State Machine。完整的
 阶段定义、LLM / Deterministic Runtime 分工、Decision Protocol 和 Out of Scope 见

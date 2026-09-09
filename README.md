@@ -101,8 +101,8 @@ production 的部署模板；不得将真实 Provider API key 写入仓库、示
 
 ### Production Provider 契约
 
-`D-011` 已 Accepted，但其生产启动准入尚为 **Not Implemented / Not Verified**；以下是待
-`JF-PS-01` 实现的配置契约，而不是当前已经取得的 production 运行证据：
+`D-011` 的生产启动准入已由 `JF-PS-01` 实现，并通过 V2（local/mock）配置回归验证；以下是当前
+生效的配置行为，不是已经取得的真实 Provider 或 production 运行证据：
 
 - development / test 未显式配置 Provider 时可以使用 deterministic 默认值。
 - production 必须显式设置 `JOBFIT_LLM_PROVIDER`；未设置即应拒绝启动。

@@ -151,6 +151,49 @@ class AnswerAssessment(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
 
 
+class SemanticJudgment(Base):
+    __tablename__ = "semantic_judgments"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
+    public_id: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    session_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("interview_sessions.id", ondelete="CASCADE"), index=True
+    )
+    question_id: Mapped[str] = mapped_column(String(120))
+    answer_id: Mapped[str] = mapped_column(String(120), unique=True)
+    competency_id: Mapped[str] = mapped_column(String(80))
+    llm_invocation_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("llm_invocations.id", ondelete="CASCADE"), unique=True
+    )
+    schema_version: Mapped[str] = mapped_column(String(80))
+    prompt_version: Mapped[str] = mapped_column(String(80))
+    provider: Mapped[str] = mapped_column(String(40))
+    model: Mapped[str] = mapped_column(String(120))
+    judgment_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+
+
+class RAGReasoningTrace(Base):
+    __tablename__ = "rag_reasoning_traces"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
+    session_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("interview_sessions.id", ondelete="CASCADE"), index=True
+    )
+    answer_id: Mapped[str] = mapped_column(String(120), unique=True)
+    semantic_judgment_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("semantic_judgments.id", ondelete="CASCADE"), unique=True
+    )
+    competency_id: Mapped[str] = mapped_column(String(80))
+    focus: Mapped[str] = mapped_column(String(50))
+    requirement: Mapped[str] = mapped_column(String(300))
+    source_ids_json: Mapped[str] = mapped_column(Text)
+    scores_json: Mapped[str] = mapped_column(Text)
+    knowledge_version: Mapped[str] = mapped_column(String(40))
+    reasoning_version: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+
+
 class CompetencyEvidence(Base):
     __tablename__ = "competency_evidence"
     __table_args__ = (UniqueConstraint("session_id", "answer_id", "signal"),)
@@ -169,6 +212,31 @@ class CompetencyEvidence(Base):
     polarity: Mapped[str] = mapped_column(String(20), default="supports")
     supported_level: Mapped[int] = mapped_column(Integer, default=0)
     verified: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+
+
+class EvidenceBoundaryJudgment(Base):
+    __tablename__ = "evidence_boundary_judgments"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
+    session_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("interview_sessions.id", ondelete="CASCADE"), index=True
+    )
+    question_id: Mapped[str] = mapped_column(String(120))
+    answer_id: Mapped[str] = mapped_column(String(120), unique=True)
+    competency_id: Mapped[str] = mapped_column(String(80))
+    competency_evidence_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("competency_evidence.id"), unique=True
+    )
+    semantic_judgment_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("semantic_judgments.id", ondelete="CASCADE"), unique=True
+    )
+    schema_version: Mapped[str] = mapped_column(String(80))
+    policy_version: Mapped[str] = mapped_column(String(80))
+    base_focus: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    effective_focus: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    applied: Mapped[bool] = mapped_column(default=False)
+    judgment_json: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
 
 

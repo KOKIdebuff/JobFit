@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -15,6 +16,7 @@ from app.core.config import Settings
 from app.modules.jobfit import llm
 from app.modules.jobfit.llm import (
     TRUNCATION_MARKER,
+    DeterministicSemanticEvaluationProvider,
     FollowUpRequest,
     LLMQuestionError,
     LLMQuestionResult,
@@ -110,6 +112,35 @@ def _openai_settings(**overrides: Any) -> Settings:
     return Settings(**values)
 
 
+_PROVIDER_SETTINGS_ENVIRONMENT = (
+    "JOBFIT_ENVIRONMENT",
+    "HIRELINK_ENVIRONMENT",
+    "JOBFIT_JWT_SECRET",
+    "HIRELINK_JWT_SECRET",
+    "JOBFIT_LLM_PROVIDER",
+    "HIRELINK_LLM_PROVIDER",
+    "JOBFIT_ALLOW_DEMO_PROVIDER",
+    "JOBFIT_LLM_BASE_URL",
+    "JOBFIT_LLM_API_KEY",
+    "JOBFIT_LLM_MODEL",
+)
+_PRODUCTION_JWT_SECRET = "a-secure-production-secret-with-more-than-32-bytes"
+
+
+def _clear_provider_settings_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in _PROVIDER_SETTINGS_ENVIRONMENT:
+        monkeypatch.delenv(name, raising=False)
+
+
+def _settings_from_environment(
+    monkeypatch: pytest.MonkeyPatch, **environment: str
+) -> Settings:
+    _clear_provider_settings_environment(monkeypatch)
+    for name, value in environment.items():
+        monkeypatch.setenv(name, value)
+    return Settings(_env_file=None)
+
+
 def _follow_up_request(template_question: str = "请说明你的取舍依据？") -> FollowUpRequest:
     return FollowUpRequest(
         job_title="AI 算法工程师",
@@ -144,13 +175,130 @@ def test_openai_provider_requires_https_in_production() -> None:
     with pytest.raises(ValidationError):
         _openai_settings(
             environment="production",
-            jwt_secret="a-secure-production-secret-with-more-than-32-bytes",
+            jwt_secret=_PRODUCTION_JWT_SECRET,
             llm_base_url="http://provider.example.test/v1",
         )
 
 
-def test_deterministic_provider_returns_the_existing_template_without_network() -> None:
-    result = llm.provider_for(Settings()).generate_follow_up(_follow_up_request())
+@pytest.mark.parametrize("environment", ["development", "test"])
+def test_default_deterministic_provider_remains_allowed_outside_production(
+    monkeypatch: pytest.MonkeyPatch, environment: str
+) -> None:
+    settings = _settings_from_environment(monkeypatch, JOBFIT_ENVIRONMENT=environment)
+
+    assert settings.llm_provider == "deterministic"
+
+
+def test_production_requires_explicit_jobfit_llm_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(ValidationError, match="JOBFIT_LLM_PROVIDER must be explicitly configured"):
+        _settings_from_environment(
+            monkeypatch,
+            JOBFIT_ENVIRONMENT="production",
+            JOBFIT_JWT_SECRET=_PRODUCTION_JWT_SECRET,
+        )
+
+
+def test_production_deterministic_provider_requires_explicit_demo_permission(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(ValidationError, match="JOBFIT_ALLOW_DEMO_PROVIDER=true"):
+        _settings_from_environment(
+            monkeypatch,
+            JOBFIT_ENVIRONMENT="production",
+            JOBFIT_JWT_SECRET=_PRODUCTION_JWT_SECRET,
+            JOBFIT_LLM_PROVIDER="deterministic",
+        )
+
+
+def test_production_deterministic_provider_rejects_false_demo_permission(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(ValidationError, match="JOBFIT_ALLOW_DEMO_PROVIDER=true"):
+        _settings_from_environment(
+            monkeypatch,
+            JOBFIT_ENVIRONMENT="production",
+            JOBFIT_JWT_SECRET=_PRODUCTION_JWT_SECRET,
+            JOBFIT_LLM_PROVIDER="deterministic",
+            JOBFIT_ALLOW_DEMO_PROVIDER="false",
+        )
+
+
+def test_production_deterministic_provider_allows_explicit_demo_scope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_from_environment(
+        monkeypatch,
+        JOBFIT_ENVIRONMENT="production",
+        JOBFIT_JWT_SECRET=_PRODUCTION_JWT_SECRET,
+        JOBFIT_LLM_PROVIDER="deterministic",
+        JOBFIT_ALLOW_DEMO_PROVIDER="true",
+    )
+
+    assert settings.llm_provider == "deterministic"
+    assert settings.allow_demo_provider is True
+    assert {"llm_provider", "allow_demo_provider"}.issubset(settings.model_fields_set)
+
+
+def test_production_deterministic_provider_allows_explicit_dotenv_scope(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _clear_provider_settings_environment(monkeypatch)
+    env_file = tmp_path / "provider.env"
+    env_file.write_text(
+        "\n".join(
+            (
+                "JOBFIT_ENVIRONMENT=production",
+                f"JOBFIT_JWT_SECRET={_PRODUCTION_JWT_SECRET}",
+                "JOBFIT_LLM_PROVIDER=deterministic",
+                "JOBFIT_ALLOW_DEMO_PROVIDER=true",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    settings = Settings(_env_file=env_file)
+
+    assert settings.llm_provider == "deterministic"
+    assert settings.allow_demo_provider is True
+    assert {"llm_provider", "allow_demo_provider"}.issubset(settings.model_fields_set)
+
+
+def test_production_openai_compatible_provider_accepts_explicit_https_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_from_environment(
+        monkeypatch,
+        JOBFIT_ENVIRONMENT="production",
+        JOBFIT_JWT_SECRET=_PRODUCTION_JWT_SECRET,
+        JOBFIT_LLM_PROVIDER="openai_compatible",
+        JOBFIT_LLM_BASE_URL="https://provider.example.test/v1",
+        JOBFIT_LLM_API_KEY="unit-test-key",
+        JOBFIT_LLM_MODEL="unit-test-model",
+    )
+
+    assert settings.llm_provider == "openai_compatible"
+
+
+def test_hirelink_provider_alias_cannot_satisfy_production_provider_requirement(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(ValidationError, match="JOBFIT_LLM_PROVIDER must be explicitly configured"):
+        _settings_from_environment(
+            monkeypatch,
+            HIRELINK_ENVIRONMENT="production",
+            HIRELINK_JWT_SECRET=_PRODUCTION_JWT_SECRET,
+            HIRELINK_LLM_PROVIDER="deterministic",
+        )
+
+
+def test_deterministic_provider_returns_the_existing_template_without_network(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    result = llm.provider_for(_settings_from_environment(monkeypatch)).generate_follow_up(
+        _follow_up_request()
+    )
 
     assert result.question == "请说明你的取舍依据？"
     assert result.provider == "deterministic"
@@ -332,7 +480,17 @@ def test_openai_follow_up_uses_rag_and_records_only_non_sensitive_audit(
         assert settings is test_settings
         return FakeProvider()
 
+    def deterministic_semantic_provider_for(
+        settings: Settings,
+    ) -> DeterministicSemanticEvaluationProvider:
+        assert settings is test_settings
+        return DeterministicSemanticEvaluationProvider()
+
     monkeypatch.setattr("app.modules.jobfit.service.provider_for", fake_provider_for)
+    monkeypatch.setattr(
+        "app.modules.jobfit.service.semantic_provider_for",
+        deterministic_semantic_provider_for,
+    )
     interview = _prepare_interview(client)
     payload = _answer_payload(interview)
 
@@ -354,8 +512,15 @@ def test_openai_follow_up_uses_rag_and_records_only_non_sensitive_audit(
 
     db_session.expire_all()
     invocations = list(db_session.scalars(select(LLMInvocation)))
-    assert len(invocations) == 1
-    invocation = invocations[0]
+    follow_up_invocations = [
+        item for item in invocations if item.purpose == "follow_up_from_answer"
+    ]
+    semantic_invocations = [
+        item for item in invocations if item.purpose == "semantic_answer_evaluation"
+    ]
+    assert len(follow_up_invocations) == 1
+    assert len(semantic_invocations) == 1
+    invocation = follow_up_invocations[0]
     assert invocation.status == "succeeded"
     assert invocation.provider == "openai_compatible"
     assert invocation.model == "unit-test-model"
@@ -364,6 +529,8 @@ def test_openai_follow_up_uses_rag_and_records_only_non_sensitive_audit(
     assert invocation.error_code is None
     assert invocation.duration_ms == 7
     assert invocation.purpose == "follow_up_from_answer"
+    assert semantic_invocations[0].provider == "deterministic"
+    assert semantic_invocations[0].knowledge_version == "not_applicable"
     assert {column.name for column in LLMInvocation.__table__.columns}.isdisjoint(
         {"prompt", "prompt_hash", "response", "response_hash", "authorization", "api_key"}
     )
@@ -394,7 +561,17 @@ def test_provider_failure_is_fail_closed_and_audited(
         assert settings is test_settings
         return FailingProvider()
 
+    def deterministic_semantic_provider_for(
+        settings: Settings,
+    ) -> DeterministicSemanticEvaluationProvider:
+        assert settings is test_settings
+        return DeterministicSemanticEvaluationProvider()
+
     monkeypatch.setattr("app.modules.jobfit.service.provider_for", failing_provider_for)
+    monkeypatch.setattr(
+        "app.modules.jobfit.service.semantic_provider_for",
+        deterministic_semantic_provider_for,
+    )
     interview = _prepare_interview(client)
     before = _data(client.get(f"/api/v1/interview-sessions/{interview['id']}"))
     before_memory = _data(client.get(f"/api/v1/interview-sessions/{interview['id']}/memory"))

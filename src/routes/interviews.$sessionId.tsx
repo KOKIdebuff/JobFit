@@ -15,12 +15,14 @@ type SpeechConstructor = new () => {
   onresult: (event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void;
   onerror: () => void;
 };
+type InputMethod = "text" | "speech_to_text";
 
 function InterviewPage() {
   const { sessionId } = Route.useParams();
   const navigate = useNavigate();
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [input, setInput] = useState("");
+  const [inputMethod, setInputMethod] = useState<InputMethod>("text");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const end = useRef<HTMLDivElement>(null);
@@ -32,13 +34,14 @@ function InterviewPage() {
   }, [sessionId]);
   useEffect(() => end.current?.scrollIntoView({ behavior: "smooth" }), [session?.messages.length]);
 
-  async function send(method: "text" | "speech_to_text" = "text") {
+  async function send() {
     if (!session || !input.trim() || busy) return;
     setBusy(true);
     setError("");
     try {
-      setSession(await jobFitApi.answer(session, input.trim(), method));
+      setSession(await jobFitApi.answer(session, input.trim(), inputMethod));
       setInput("");
+      setInputMethod("text");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "提交失败");
     } finally {
@@ -58,8 +61,14 @@ function InterviewPage() {
     const recognition = new Constructor();
     recognition.lang = "zh-CN";
     recognition.interimResults = false;
-    recognition.onresult = (event) => setInput(event.results[0][0].transcript);
-    recognition.onerror = () => setError("语音转写失败，未保存任何音频，请改用文字输入。");
+    recognition.onresult = (event) => {
+      setInput(event.results[0][0].transcript);
+      setInputMethod("speech_to_text");
+    };
+    recognition.onerror = () => {
+      setInputMethod("text");
+      setError("语音转写失败，未保存任何音频，请改用文字输入。");
+    };
     recognition.start();
   }
   async function report() {

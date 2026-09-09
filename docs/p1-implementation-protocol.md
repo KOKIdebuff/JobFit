@@ -14,10 +14,9 @@
   只保留与其职责相符的索引、准入和任务信息，避免重复定义阶段语义。
 - `implementation-status.md` 只依据代码、迁移、配置和测试说明已观察实现；`progress.md` 只记录任务
   当前状态、证据与不可变事件。本文引用状态快照时不替代这两个事实源。
-- 除 `JF-P1-01` 外，所有 P1 阶段当前均为 `pending`。`pending` 不等于开始实施、已有接口、已有迁移或
-  已有运行证据。
+- `JF-P1-02` 已依 `D-014` 完成 V2（local/mock）私有 Semantic Judgment 实现并冻结输出契约；显式 openai_compatible 的 semantic payload 仅允许 synthetic/de-identified profile，当前仅以 mock/stub 验证。`JF-P1-03` 已依 `D-016` 完成 V2（local/mock）受控语义焦点追问并冻结 Follow-up Context；`JF-P1-04` 已依 D-017 完成 V2（local/mock）内置 BM25 grounded reasoning 与 private trace；`JF-P1-05` 已依 `D-018` 完成 V2（local/mock）私有 Evidence / Boundary Hardening。命名真实 Provider 调用与 V5 / production 观察仍 pending。其当前运行状态只以 `progress.md` 为准。`JF-P1-06` 至 `JF-P1-09` 仍为 `pending`，`pending` 不等于开始实施、已有接口、已有迁移或已有运行证据。
 - 每个后续 Phase 进入实施前，必须先形成该 Phase 所需的具体 Decision、任务卡、边界、验证与 Gate；本
-  协议本身不授权启动 P1-02 或任何更晚阶段。
+  协议本身不授权启动 P1-06 或任何更晚阶段。
 
 ## 2. P0 基线与 Freeze Rules
 
@@ -135,10 +134,10 @@ audit。系统不得静默降级到 deterministic；只有显式
 | Task ID | 阶段 | 当前状态 | 阶段目标 |
 | --- | --- | --- | --- |
 | JF-P1-01 | Controlled LLM Follow-up Provider | completed；V2（local/mock） | 以受控 Provider 将既定 `NextAction` 表达为专业追问；真实外部 Provider 验证仍 pending。 |
-| JF-P1-02 | LLM Semantic Answer Evaluation | pending | 使用 LLM 对候选人回答进行语义理解，并输出严格结构化的 Semantic Judgment；LLM 不直接控制最终 Runtime。 |
-| JF-P1-03 | Intelligent Adaptive Follow-up | pending | 根据 Candidate Answer、Semantic Judgment、Evidence、Memory 与 Competency Context 生成真正针对回答内容的专业追问。 |
-| JF-P1-04 | RAG Integration into Interview Reasoning | pending | 让 RAG 不仅进入 Follow-up Prompt，还真正参与 Interview Reasoning。 |
-| JF-P1-05 | Evidence + Boundary Hardening | pending | 进一步增强 Evidence Strength、Contradiction Detection、Ownership Verification 与 Competency Boundary。 |
+| JF-P1-02 | LLM Semantic Answer Evaluation | completed；V2（local/mock），synthetic/de-identified OpenAI-compatible mock 已验证 | 使用受限 Provider-agnostic 语义路径对候选人回答生成严格结构化 Semantic Judgment；LLM 不直接控制最终 Runtime。 |
+| JF-P1-03 | Intelligent Adaptive Follow-up | completed；V2（local/mock），external pending | 根据 Candidate Answer、Semantic Judgment、Evidence、Memory 与 Competency Context 生成真正针对回答内容的专业追问。 |
+| JF-P1-04 | RAG Integration into Interview Reasoning | completed；V2（local/mock），external pending | 让受信任内置 BM25 grounding 参与 Follow-up Reasoning，并私有留存 trace。 |
+| JF-P1-05 | Evidence + Boundary Hardening | completed；V2（local/mock），external pending | 私有 deterministic hardening judgment 只在同能力项的既有 whitelist focus 上生效，并保留最小化 trace。 |
 | JF-P1-06 | Semantic Long-term Memory | pending | 将当前 Summary Memory 升级为语义结构化 Memory，同时保留 Working / Summary / Evidence Memory，不创建第四套 Memory System。 |
 | JF-P1-07 | Assessment Report Quality | pending | 提升 Assessment Report 的 Evidence Traceability、客观性与 Improvement Recommendation 质量。 |
 | JF-P1-08 | Interviewer Persona | pending | 提升 Text Interview 的专业性、自然承接能力与职业感；不增加 Avatar、Digital Human 或 Video Interview。 |
@@ -180,6 +179,6 @@ Speech-to-Text 仅作为 **Text Interview Input Enhancement**：它只协助用�
 
 - 命名真实外部 Provider 的实际调用证据与 Production Validation 均为 pending，必须另行在安全配置凭据的
   环境中取得相应运行证据。
-- P1-02 至 P1-09 均未开始。它们的详细接口、数据模型、任务卡、验收条件、验证命令和 Gate 必须在进入
-  对应 Phase 前再定义，不能由本协议预先伪装为已实施设计。
+- `JF-P1-02` 的具体接口、数据模型、任务卡、验收条件、验证命令和 Gate 已由 `D-014` 与 Implementation Plan
+  定义，并已完成 V2 local/mock 验证。它的 OpenAI-compatible 语义请求只传输 synthetic/de-identified profile；真实网络调用、外部 RAG 与 production / V5 观察仍 pending。`JF-P1-03` 已由 D-016 与 Implementation Plan 形成独立 Task Card，并已完成 V2 local/mock 验证；`JF-P1-04` 已由 D-017 与 Implementation Plan 定义并完成 V2 local/mock 验证；`JF-P1-05` 已由 D-018 与 Implementation Plan 定义并完成 V2 local/mock 私有 hardening judgment / migration / P0 Freeze 回归。P1-06 至 P1-09 均未开始，不能由本协议预先伪装为已实施设计。
 - 本协议不改变 P0 的 Evidence、Memory、Report、评分公式、公开 API 或历史数据。

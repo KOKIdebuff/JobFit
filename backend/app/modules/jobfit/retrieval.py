@@ -16,6 +16,7 @@ class KnowledgeChunk:
     source_id: str
     role: str
     competency_id: str
+    evidence_requirements: tuple[str, ...]
     text: str
 
 
@@ -47,6 +48,7 @@ def _chunks() -> list[KnowledgeChunk]:
                     source_id=f"{KNOWLEDGE_VERSION}:{role}:{item['id']}",
                     role=role,
                     competency_id=item["id"],
+                    evidence_requirements=tuple(item["evidence_requirements"]),
                     text=text,
                 )
             )
@@ -85,6 +87,8 @@ def retrieve(role: str, competency_id: str, query: str, limit: int = 3) -> list[
         {
             "source_id": chunk.source_id,
             "score": round(score, 4),
+            "competency_id": chunk.competency_id,
+            "evidence_requirements": list(chunk.evidence_requirements),
             "text": chunk.text,
         }
         for score, chunk in scored[:limit]
