@@ -85,20 +85,40 @@ AI 内推网络、企业人才运营、HR 招聘 CRM、ATS 对接、真人面试
 
 默认 API 地址为 http://127.0.0.1:8000，健康检查为 /health，OpenAPI 为 /docs。
 
-## 环境变量
+## 环境变量与 Provider 配置
 
-后端读取 backend/.env。backend/.env.example 是唯一的示例键和值来源；本仓库不在文档迁移中修改它。
+后端读取 `backend/.env`。`backend/.env.example` 是 development 示例的键和值来源，不是可直接用于
+production 的部署模板；不得将真实 Provider API key 写入仓库、示例文件或前端环境变量。
 
-| 变量组                                                                                                     | 用途与当前状态                                             |
-| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| JOBFIT_ENVIRONMENT、JOBFIT_LOG_LEVEL、JOBFIT_DATABASE_URL、JOBFIT_SQLITE_BUSY_TIMEOUT_MS                   | 后端运行基础配置。                                         |
-| JOBFIT_JWT_SECRET、JOBFIT_AUTH_COOKIE_NAME                                                                 | 认证安全与 Cookie 名称；生产环境必须替换默认密钥。         |
+| 变量组                                                                                                     | 用途与当前状态 |
+| ---------------------------------------------------------------------------------------------------------- | --- |
+| JOBFIT_ENVIRONMENT、JOBFIT_LOG_LEVEL、JOBFIT_DATABASE_URL、JOBFIT_SQLITE_BUSY_TIMEOUT_MS                   | 后端运行基础配置。 |
+| JOBFIT_JWT_SECRET、JOBFIT_AUTH_COOKIE_NAME                                                                 | 认证安全与 Cookie 名称；production 必须替换默认密钥。 |
 | JOBFIT_LLM_PROVIDER、JOBFIT_LLM_BASE_URL、JOBFIT_LLM_API_KEY、JOBFIT_LLM_MODEL、JOBFIT_LLM_TIMEOUT_SECONDS | 受控 Provider 的服务端配置；local/mock 路径已验证，但配置或 mock 不能证明真实外部 Provider 已验证。 |
-| JOBFIT_ALLOW_DEMO_PROVIDER                                                                                 | 是否允许 deterministic 演示 Provider。                     |
+| JOBFIT_ALLOW_DEMO_PROVIDER                                                                                 | deterministic 演示 Provider 的显式许可；其 production 语义由 D-011 定义。 |
 | VITE_JOBFIT_API_BASE_URL                                                                                   | Vite 构建时读取的前端 API 基地址，应在前端环境文件中配置。 |
-| VITE_JOBFIT_ENABLE_SPEECH_INPUT                                                                            | 示例中存在但当前前端未读取，不应被表述为可用的功能开关。   |
+| VITE_JOBFIT_ENABLE_SPEECH_INPUT                                                                            | 示例中存在但当前前端未读取，不应被表述为可用的功能开关。 |
 
-HIRELINK 前缀仅作为后端读取旧环境配置的兼容别名保留；新部署应使用 JOBFIT 前缀。
+### Production Provider 契约
+
+`D-011` 已 Accepted，但其生产启动准入尚为 **Not Implemented / Not Verified**；以下是待
+`JF-PS-01` 实现的配置契约，而不是当前已经取得的 production 运行证据：
+
+- development / test 未显式配置 Provider 时可以使用 deterministic 默认值。
+- production 必须显式设置 `JOBFIT_LLM_PROVIDER`；未设置即应拒绝启动。
+- production 显式设置 `JOBFIT_LLM_PROVIDER=deterministic` 时，还必须显式设置
+  `JOBFIT_ALLOW_DEMO_PROVIDER=true`。此模式只能称为 demo/mock scope，不能称为真实外部
+  Provider、V5 验证或 Production Ready。
+- `openai_compatible` 仍要求 base URL、API key 和 model；production URL 必须为 HTTPS。
+  Provider 配置错误、超时、网络 / HTTP 错误或无效输出继续按 D-009 fail-closed，禁止自动降级到
+  deterministic。
+
+新部署使用 `JOBFIT_*`。当前仅保留以下 HIRELINK legacy 兼容读取：后端的
+`HIRELINK_ENVIRONMENT`、`HIRELINK_LOG_LEVEL`、`HIRELINK_DATABASE_URL`、
+`HIRELINK_SQLITE_BUSY_TIMEOUT_MS`、`HIRELINK_JWT_SECRET`、`HIRELINK_AUTH_COOKIE_NAME`，以及前端的
+`VITE_HIRELINK_API_BASE_URL`。Provider 配置没有 `HIRELINK_LLM_*` alias；即使
+`HIRELINK_ENVIRONMENT=production` 使应用进入 production，仍必须由
+`JOBFIT_LLM_PROVIDER` 满足 D-011，不能借 legacy alias 代替。
 
 ## 验证
 

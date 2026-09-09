@@ -24,6 +24,7 @@
 | JF-P0-05 | completed | 历史规划闭环：能力边界、匹配度与报告。 | historical import | historical | V0（当前源码证据） | H-P0-05 | 原始完成时间不可追溯。 | 不新增实现；保留当前代码证据。 | historical import; no retrospective gate | 2026-09-06T20:24:46+08:00 | [P0 历史导入证据](#p0-历史导入证据) |
 | JF-P0-06 | completed | 历史规划闭环：候选人评估、面试记录和报告路径。 | historical import | historical | V0（当前源码证据） | H-P0-06 | 原始完成时间不可追溯。 | 不新增实现；P1-09 负责补齐 Browser E2E。 | historical import; no retrospective gate | 2026-09-06T20:24:46+08:00 | [P0 历史导入证据](#p0-历史导入证据) |
 | JF-P1-01 | completed | 已实现受控 deterministic / OpenAI-compatible 后续追问、BM25 Prompt 上下文、fail-closed 写入顺序与 P1 专属非敏感审计；P0 评分语义保持冻结。 | Codex（当前工作区执行者） | jobfit-llm-provider | V2（local/mock） | P1-01-E-004 | none；命名真实 Provider V5 运行证据为独立后续观察，不改变本 Task 的 V2 完成状态。 | none；后续按独立证据任务取得 V5，P1-02 至 P1-09 保持 pending。 | A1 approved by D-009; A2 not triggered — D-009 已覆盖受控用户可见语义; A3 not applicable | 2026-09-08T00:19:00+08:00 | [JF-P1-01 事件记录](#jf-p1-01-事件记录) |
+| JF-PS-01 | ready | D-011 的 Provider Safety SSoT、行为矩阵、验证与回滚边界已同步；未开始代码、测试、配置或真实 Provider 调用。 | unassigned | jobfit-provider-safety | none | none | none；真实 Provider V5 与 production 验证是独立 pending 证据，不阻塞本地代码准备。 | 获得独立代码阶段授权后，实施 Settings 显式来源校验并执行 local/mock 配置回归。 | A1 approved by D-011; A2 pending after code validation; A3 not applicable | 2026-09-09T00:14:24+08:00 | none |
 | JF-P1-02 | pending | LLM Semantic Answer Evaluation 尚未进入实施。 | unassigned | none | none | none | Semantic Judgment 结构、Runtime 控制边界和验证范围未冻结。 | 在对应 Phase 补齐具体设计后进入 in_progress。 | A1 required before implementation; A3 not applicable | 2026-09-08T01:13:37+08:00 | none |
 | JF-P1-03 | pending | Intelligent Adaptive Follow-up 尚未进入实施。 | unassigned | none | none | none | Candidate Answer、Semantic Judgment、Evidence、Memory 与 Competency Context 的受控使用边界未冻结。 | 在对应 Phase 补齐具体设计后进入 in_progress。 | A1 required before implementation; A3 not applicable | 2026-09-08T01:13:37+08:00 | none |
 | JF-P1-04 | pending | RAG Integration into Interview Reasoning 尚未进入实施。 | unassigned | none | none | none | RAG 参与 Interview Reasoning 的边界、知识治理和验证范围未冻结。 | 在对应 Phase 补齐具体设计后进入 in_progress。 | A1 required before implementation; A3 not applicable | 2026-09-08T01:13:37+08:00 | none |
@@ -81,6 +82,7 @@
 | --- | --- | --- | --- |
 | P0 产品阻塞 | none | 当前 P0 已作为历史闭环导入；不把旧 HireLink 招聘、真人面试、视频、ATS 或反作弊问题写为 P0 阻塞。 | 仅维护代码事实与文档证据。 |
 | JF-P1-01 风险 | completed（V2 local/mock） | `D-009` 的 Provider、失败、审计与 P0 冻结边界已实现并受控验证；仍存在外部成本、凭据、超时、输出不稳定、Prompt 注入和真实 V5 运行证据风险。 | 真实 Provider V5 仅在本地安全配置凭据后作为独立观察取得；前端全仓 CRLF/LF lint 基线另行治理，不扩大本 Task。 |
+| JF-PS-01 风险 | ready（planning only） | `D-011` 已 Accepted，但 production Provider 显式选择尚未实现或验证；不得把 deterministic demo/mock、文档同步或 P1-01 V2 当作真实 Provider / production 证据。`D-012`、`D-013` 的预留状态只以 Decision 与 Implementation Status 为准，不创建虚构 Runtime 任务。 | 代码阶段只覆盖 Settings 与 local/mock 回归；真实 Provider V5、production 观察及任何启用预留状态的工作继续 pending。 |
 | JF-P1-02 风险 | pending | Semantic Judgment 的结构、LLM 语义理解与 deterministic Runtime 控制边界未定义。 | 形成独立语义评估设计后再启动。 |
 | JF-P1-03 风险 | pending | 回答语义、Evidence、Memory 与追问动作的受控衔接未定义。 | 形成独立追问设计后再启动。 |
 | JF-P1-04 风险 | pending | RAG 如何参与 Interview Reasoning、知识治理与可追溯性未定义。 | 形成独立 RAG 推理设计后再启动。 |
@@ -94,5 +96,6 @@
 
 - P0 导入记录依据当前源码、迁移和测试路径，不伪造历史完成时间、执行者或当时验证事件。
 - JF-P1-01 已完成 V2（local/mock）代码、迁移与受控验证；不得据此称为命名真实外部 Provider V5、Production Ready、浏览器 E2E 或后续 P1 Phase 已完成。真实外部 Provider Validation 仍为 pending，JF-P1-02 至 JF-P1-09 均为 pending。
+- `JF-PS-01` 的 `ready` 只证明 D-011 的计划、契约、依赖、验证和回滚信息已同步；它不证明 production 显式 Provider 准入已实现或已通过测试。D-012 / D-013 是 Accepted 的预留状态决定，不是当前 Runtime 事件或已验证状态机能力。
 - 本轮 `bun run lint` 对未改动前端文件因 `core.autocrlf=true` 的 `i/lf w/crlf` 基线报告 4,802 条 Prettier 换行符错误；未为本 Task 改写无关前端文件，P1 后端 V2 结论不将该失败写成前端通过。
 - E-007 的 V2 只证明本地测试数据库中的受测后端路径通过；它不证明真实 LLM、外部知识库、浏览器语音质量、浏览器端到端旅程或生产运行质量。

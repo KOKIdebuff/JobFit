@@ -74,7 +74,16 @@ Candidate Competency Profile 保存简历结构化信息、能力标签和简历
 5. 对未结束的下一问，按显式 Provider 模式生成受约束问题：deterministic 保持既有模板；openai_compatible 只生成问题文本。
 6. 保存消息、回答评估、Evidence、检索轨迹、Memory 和非敏感调用审计。
 
-状态包括 PREPARING、ASKING、WAITING_FOR_ANSWER、EVALUATING、DECIDING、COMPLETED、REPORT_GENERATION 与 FAILED。回答评估、动作决定、能力切换、难度变化、Evidence 验证、Memory 更新和 Report 评分仍是确定性规则；Provider 不能改变这些决定。
+当前 Runtime 的会话路径使用 PREPARING、ASKING、WAITING_FOR_ANSWER、EVALUATING、DECIDING 与
+COMPLETED。回答评估、动作决定、能力切换、难度变化、Evidence 验证、Memory 更新和 Report 评分仍是
+确定性规则；Provider 不能改变这些决定。
+
+`InterviewStatus` 还声明了 `REPORT_GENERATION` 与 `FAILED`，但两者都是预留值而非当前可进入的
+Runtime 状态。`D-012` 将 `REPORT_GENERATION` 定义为 Accepted / Not Implemented / Not Verified：当前
+`generate_report()` 只接受 `COMPLETED` 会话并同步创建或返回报告，不存在报告生成中、队列、恢复或异步
+转换。`D-013` 将 `FAILED` 定义为 Accepted / Not Implemented / Not Verified：Provider 故障保留既有
+`AI_*` 错误和最小失败审计，不会把会话持久化为 `FAILED`。未来启用任一状态前，必须先完成对应的独立
+状态机、恢复、兼容性与验证决策。
 
 ### 4.5 RAG、记忆与报告
 
@@ -100,8 +109,8 @@ BM25 检索索引由内置岗位模板中的 Rubric、Evidence 要求和题目�
 
 `LLMInvocation` 仅保存非敏感调用追溯字段。`openai_compatible` Provider 超时、网络/HTTP 失败或输出无效时
 复用既有 `AI_*` 语义 fail-closed：不写入该轮 Candidate Answer、Evidence、Answer Assessment、Memory、
-RetrievalTrace、Report 或 Session Version，只保存最小失败审计。`deterministic` 只能显式选择，不能成为静默
-降级。
+RetrievalTrace、Report 或 Session Version，只保存最小失败审计。`deterministic` 不能成为静默降级；当前
+development / test 默认值与 production 的显式选择准入由 D-011 分别约束。
 
 该路径完成于 V2（local/mock）范围。它不证明命名真实外部 Provider 的实际调用、生产环境验证或 Production
 Ready；External Provider Validation 仍为 pending。完整技术与执行边界见
@@ -123,11 +132,31 @@ Ready；External Provider Validation 仍为 pending。完整技术与执行边�
 
 ## 7. 配置与 Provider 边界
 
-后端主配置前缀为 JOBFIT。HIRELINK 前缀仅由 Settings 读取为兼容别名。
+后端主配置前缀为 `JOBFIT_*`。当前有限的 HIRELINK legacy 读取只有
+`HIRELINK_ENVIRONMENT`、`HIRELINK_LOG_LEVEL`、`HIRELINK_DATABASE_URL`、
+`HIRELINK_SQLITE_BUSY_TIMEOUT_MS`、`HIRELINK_JWT_SECRET` 与 `HIRELINK_AUTH_COOKIE_NAME`；前端还保留
+`VITE_HIRELINK_API_BASE_URL`。这些是历史兼容事实，不定义旧招聘 Runtime，也不存在
+`HIRELINK_LLM_*` Provider alias。
 
-llm_provider 可取 deterministic 或 openai_compatible；后者要求 base URL、API key 和 model 均存在。Provider URL 仅允许 http(s)、不得含 userinfo、query 或 fragment，生产环境要求 HTTPS；请求关闭重定向跟随。Provider endpoint 和密钥只在服务端 Settings 中读取，浏览器不接收它们。
+`llm_provider` 可取 deterministic 或 openai_compatible；后者要求 base URL、API key 和 model 均存在。
+Provider URL 仅允许 http(s)、不得含 userinfo、query 或 fragment，production 要求 HTTPS；请求关闭重定向
+跟随。Provider endpoint 和密钥只在服务端 Settings 中读取，浏览器不接收它们。
 
-当前 Runtime 已具备受控调用路径：首个开场问题保持确定性模板；后续未结束问题由显式 Provider 生成。local/mock 测试已覆盖 OpenAI-compatible Chat Completions 请求、超时/Provider/无效输出、BM25 Prompt 注入、失败原子性和 deterministic 回归；尚未取得真实外部 Provider 运行证据。
+当前观察到的 Settings 仍将 `llm_provider` 默认解析为 deterministic，并将
+`allow_demo_provider` 默认解析为 true；production 只在 deterministic 且 demo 许可关闭时拒绝启动。因此
+`D-011` 的生产 Provider 显式选择规则为 **Accepted / Not Implemented / Not Verified**，不能把该规则写成
+当前已生效的配置事实。
+
+D-011 的待实现配置契约为：development / test 未配置 Provider 时可以使用 deterministic 默认；production
+必须显式配置 `JOBFIT_LLM_PROVIDER`，未配置即拒绝启动；production 显式选择 deterministic 时，还必须显式
+配置 `JOBFIT_ALLOW_DEMO_PROVIDER=true`。显式 deterministic 仅是 demo/mock scope，不构成真实外部 Provider
+集成或 Production Ready 证据。`HIRELINK_ENVIRONMENT=production` 若使应用进入 production，仍不能替代对
+`JOBFIT_LLM_PROVIDER` 的要求。openai_compatible 的配置错误、超时、调用失败或无效输出继续按 D-009
+fail-closed，不得自动降级为 deterministic。
+
+当前 Runtime 已具备受控调用路径：首个开场问题保持确定性模板；后续未结束问题由显式 Provider 生成。
+local/mock 测试已覆盖 OpenAI-compatible Chat Completions 请求、超时/Provider/无效输出、BM25 Prompt 注入、
+失败原子性和 deterministic 回归；尚未取得真实外部 Provider 或 production 运行证据。
 
 ## 8. 安全与隐私
 

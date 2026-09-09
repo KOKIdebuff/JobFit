@@ -30,6 +30,7 @@
 | JF-P0-05 | P0（历史导入） | JF-P0-04 | historical | 不作为新并行任务 | historical completed |
 | JF-P0-06 | P0（历史导入） | JF-P0-01 至 JF-P0-05 | historical | 不作为新并行任务 | historical completed |
 | JF-P1-01 | P1 | JF-P0-04、D-009 | after D-009 | 已完成；后续 Phase 默认不并行启动 | pending |
+| JF-PS-01 | Provider Safety（P1 非阶段性 hardening） | JF-P1-01、D-009、D-011 | after D-011 SSoT sync | 与会改动 Settings 的任务串行 | pending |
 | JF-P1-02 | P1 | JF-P1-01、D-010 | after phase-specific approval | 默认串行；未形成可执行任务卡 | pending |
 | JF-P1-03 | P1 | JF-P1-02、D-010 | after phase-specific approval | 默认串行；未形成可执行任务卡 | pending |
 | JF-P1-04 | P1 | JF-P1-03、D-010 | after phase-specific approval | 默认串行；未形成可执行任务卡 | pending |
@@ -89,11 +90,11 @@
 | 岗位画像与评估 | `POST /job-profiles`、`GET /job-profiles/{id}`、`POST /assessments`、`GET /assessments/{id}` | 岗位画像输入为 `job_role`、2–160 字符 `title`、最多 30000 字符 `jd_text` 和 1–5 `difficulty`；JD 文本不等同于自由能力模型生成。 |
 | 面试会话 | `POST /interview-sessions`、查询、`start`、`answers`、`complete` 子资源 | Assessment 创建唯一会话；回答输入包含当前 `question_id`、1–12000 字符文本、`input_method`、8–80 字符 `client_request_id` 和 `expected_session_version`。 |
 | Evidence、Memory、Retrieval | `GET .../evidence`、`memory`、`retrieval-traces` | 返回 Evidence、三层记忆与 BM25 source ID/分数/知识版本。 |
-| 报告 | `POST .../report`、`GET /reports`、`GET /reports/{id}` | 仅 `COMPLETED` 会话可生成；重复生成返回同一报告。 |
+| 报告 | `POST .../report`、`GET /reports`、`GET /reports/{id}` | 仅 `COMPLETED` 会话可生成；重复生成返回同一报告。`REPORT_GENERATION` 不是当前报告 API 会进入的状态。 |
 
 ### 会话、并发、错误与实体
 
-- 会话状态为 `PREPARING`、`ASKING`、`WAITING_FOR_ANSWER`、`EVALUATING`、`DECIDING`、`COMPLETED`、`REPORT_GENERATION`、`FAILED`。
+- 当前 Runtime 使用 `PREPARING`、`ASKING`、`WAITING_FOR_ANSWER`、`EVALUATING`、`DECIDING` 与 `COMPLETED`。`REPORT_GENERATION` 是 D-012 Accepted / Not Implemented / Not Verified 的预留状态；当前报告只从 `COMPLETED` 同步生成或返回，未进入该状态。`FAILED` 是 D-013 Accepted / Not Implemented / Not Verified 的预留状态；当前 Provider 故障按既有 `AI_*` fail-closed 语义返回，未把会话持久化为该状态。
 - 同一会话与 `client_request_id` 的重复答案不得重复写入；版本、问题或状态不匹配时返回 `INTERVIEW_CONFLICT` 或 `INTERVIEW_INVALID_STATE`。
 - `speech_to_text` 仅标记用户确认文本的来源，不表示音频上传、录制、保存或回放。
 - 关键错误包括 `AUTH_UNAUTHORIZED`、`AUTH_FORBIDDEN`、`FILE_TOO_LARGE`、`FILE_UNSUPPORTED_TYPE`、`FILE_MIME_MISMATCH`、`FILE_TEXT_NOT_EXTRACTABLE`、`INTERVIEW_INVALID_STATE`、`INTERVIEW_CONFLICT` 与 `REPORT_INVALID_STATE`。
@@ -101,8 +102,9 @@
 
 ### 配置与可追溯性
 
-- 新部署使用 `JOBFIT_*`。`HIRELINK_ENVIRONMENT`、`HIRELINK_LOG_LEVEL`、`HIRELINK_DATABASE_URL`、`HIRELINK_SQLITE_BUSY_TIMEOUT_MS`、`HIRELINK_JWT_SECRET`、`HIRELINK_AUTH_COOKIE_NAME` 和前端 `VITE_HIRELINK_API_BASE_URL` 仅为 legacy 兼容读取。
-- `JOBFIT_LLM_PROVIDER`、`JOBFIT_LLM_BASE_URL`、`JOBFIT_LLM_API_KEY`、`JOBFIT_LLM_MODEL`、`JOBFIT_LLM_TIMEOUT_SECONDS`、`JOBFIT_ALLOW_DEMO_PROVIDER` 只约束配置校验；不构成真实 Provider 调用。
+- 新部署使用 `JOBFIT_*`。当前仅有 `HIRELINK_ENVIRONMENT`、`HIRELINK_LOG_LEVEL`、`HIRELINK_DATABASE_URL`、`HIRELINK_SQLITE_BUSY_TIMEOUT_MS`、`HIRELINK_JWT_SECRET`、`HIRELINK_AUTH_COOKIE_NAME` 和前端 `VITE_HIRELINK_API_BASE_URL` 的 legacy 兼容读取；不存在 `HIRELINK_LLM_*` Provider alias。这些兼容读取不能定义当前招聘工作流或替代 Provider 显式选择。
+- `D-011` 的配置契约为 Accepted / Not Implemented / Not Verified：development / test 未显式 Provider 时可使用 deterministic 默认；production 必须显式设置 `JOBFIT_LLM_PROVIDER`，未设置即拒绝启动；production 显式 deterministic 还必须显式设置 `JOBFIT_ALLOW_DEMO_PROVIDER=true`。若 `HIRELINK_ENVIRONMENT=production` 使应用进入 production，仍必须由 `JOBFIT_LLM_PROVIDER` 满足该规则。
+- `JOBFIT_LLM_PROVIDER`、`JOBFIT_LLM_BASE_URL`、`JOBFIT_LLM_API_KEY`、`JOBFIT_LLM_MODEL`、`JOBFIT_LLM_TIMEOUT_SECONDS`、`JOBFIT_ALLOW_DEMO_PROVIDER` 只约束服务端配置与受控调用，不构成真实 Provider 调用。openai_compatible 仍要求 URL、API key、model，production URL 必须为 HTTPS；失败不得自动降级到 deterministic。任何 deterministic 运行只能标记为 demo/mock scope。
 - `VITE_JOBFIT_API_BASE_URL` 是当前前端 API 基地址；`VITE_JOBFIT_ENABLE_SPEECH_INPUT` 不是当前消费的功能开关。
 - 报告、追问和评分必须保留模板/知识版本、会话版本、Evidence ID 或报告版本；不得以最新模板重建历史评分。
 
@@ -159,6 +161,45 @@ P1 的阶段身份、目标、P0 Freeze、LLM / Deterministic Runtime 边界和 
 | `risk` | 外部成本、凭据泄露、超时、不可复现输出、Prompt 注入、Provider 可用性和不当持久化候选人内容。Provider endpoint 只能由服务端配置，候选人内容只能作为不可信上下文。 |
 | `rollback` | 将运行配置显式切换为 `deterministic`，并仅以局部反向补丁和 P1 专属迁移回退 Provider/审计实现；不回退、重算、删除或改写既有 P0 Evidence、Memory、Report 或历史评分。 |
 | `superseded_by` | `none` |
+
+## JF-PS-01：生产 Provider 显式选择与 deterministic 演示例外
+
+| 字段 | 定义 |
+| --- | --- |
+| `task_id` | `JF-PS-01` |
+| `phase` | Provider Safety（P1 非阶段性 hardening）；不重开已完成的 `JF-P1-01`，也不创建 D-010 未批准的后续 P1 阶段。 |
+| `summary` | 实现 D-011 的 production Provider 显式选择准入，同时保留 D-009 的 fail-closed、最小审计和固定 Interview Orchestrator 边界。 |
+| `status_initial` | `pending`；当前运行状态以 Progress 的 `ready` 为准。 |
+| `depends_on` | 已完成的 `JF-P1-01`；来源决策为 `D-009`、`D-011`。不依赖、也不启动 `JF-P1-02` 至 `JF-P1-09`。 |
+| `execution_order` / `parallel_with` | `after D-011 SSoT sync` / `none`；与任何修改 Settings 的任务串行。 |
+| `execution_lane` | `jobfit-provider-safety`。 |
+| `source_requirement` | [prd.md](./prd.md) 第 6 节“表述诚实”与第 8 节的实现状态证据边界；production 准入语义由 `D-011` 批准。 |
+| `source_decision` | `D-009`、`D-011`。 |
+| `spec_or_contract` | 本文“配置与可追溯性”中的 D-011 配置契约；不新增 HTTP API、前端 Provider 接口、数据库字段、migration、环境变量或 HIRELINK Provider alias。 |
+| `architecture_or_adr` | [architecture.md](./architecture.md) 的 Provider 边界：Provider 只生成既定 `NextAction` 的下一问，固定 Orchestrator 继续控制状态、评估、Evidence、Memory 和评分。 |
+| `expected_result` | production 能可靠区分默认值与显式 Provider / demo 许可；development / test 的 deterministic 默认保持兼容；openai_compatible 的现有 URL、HTTPS、凭据和 fail-closed 规则保持不变。 |
+| `acceptance_criteria` | 1. production 未显式 `JOBFIT_LLM_PROVIDER` 时拒绝启动，即使解析值为默认 deterministic；2. production 显式 deterministic 只有同时显式 `JOBFIT_ALLOW_DEMO_PROVIDER=true` 才允许启动，且仅标记为 demo/mock scope；3. production 的 openai_compatible 仍要求完整 URL / API key / model 与 HTTPS；4. HIRELINK legacy alias（包括 `HIRELINK_ENVIRONMENT=production`）不能代替 `JOBFIT_LLM_PROVIDER`，且不新增 `HIRELINK_LLM_*` alias；5. 超时、Provider / HTTP 错误和无效输出仍 fail-closed，不自动退回 deterministic；6. 不改写 P0 Evidence、Memory、Report、评分、公开 API、migration 或历史数据。 |
+| `changed_files` | **未来代码阶段**仅限 `backend/app/core/config.py`、`backend/tests/jobfit/test_llm_provider.py`、必要时 `backend/tests/contract/test_response_contract.py`，以及完成后的事实文档同步；不得改动 TypeScript、Provider 调用逻辑、migration、`backend/.env.example`、P0 Evidence / Memory / Report。**本次**仅改 README 与活动文档。 |
+| `validation` | 文档阶段运行目标文件范围、Markdown 链接、Task-ID 集、术语与 `git diff --check` 静态检查。未来代码阶段在 `backend/` 运行 `uv run pytest tests/jobfit/test_llm_provider.py tests/jobfit/test_jobfit_flow.py tests/contract/test_response_contract.py` 与 `uv run mypy app`；测试使用 local/mock 与伪造凭据，不调用真实 Provider。 |
+| `required_verification_level` | 文档同步为 V1（local/static）；代码完成至少 V2（local/mock）。命名真实外部 Provider 调用与 production 观察只可凭独立 V5 证据声明，当前均为 pending。 |
+| `gate` | A1：`D-011` 已批准该任务的精确 production 配置边界；A2：未来机器验证后重新检查 fallback、legacy 或用户可见错误语义；A3：不适用，除非后续执行部署、发布、production 配置变更或真实外部 Provider 观察。 |
+| `risk` | 无意 production 默认值、demo 被误表述为真实集成、HIRELINK alias 扩散、凭据泄露、Provider 失败后不当 fallback，以及用文档或 mock 夸大为 V5。 |
+| `rollback` | 本次文档仅用逐段反向补丁回退，且不覆盖已有 `architecture-decisions.md` 用户改动。未来代码只回退 `JF-PS-01` 的 Settings 校验与对应测试 / 事实记录；不得通过恢复隐式 production deterministic 作为回滚路径，不触及 P1-01、数据库或 P0 历史数据。 |
+| `superseded_by` | `none` |
+
+### JF-PS-01 行为矩阵
+
+| 环境与配置来源 | 预期启动结果 | 运行 / 证据边界 |
+| --- | --- | --- |
+| development / test，未设置 Provider | 允许；保持 deterministic 默认。 | 仅 development、test、demo/mock scope。 |
+| production，未显式设置 `JOBFIT_LLM_PROVIDER` | 拒绝启动，即使解析后默认值为 deterministic。 | 防止 production 无意使用默认 Provider。 |
+| production，显式 deterministic 但 demo flag 未显式设置 | 拒绝启动。 | 默认 `allow_demo_provider=true` 不能替代显式许可。 |
+| production，显式 deterministic 且显式 `JOBFIT_ALLOW_DEMO_PROVIDER=false` | 拒绝启动。 | 明确禁用 demo Provider。 |
+| production，显式 deterministic 且显式 `JOBFIT_ALLOW_DEMO_PROVIDER=true` | 允许启动。 | 仅 demo/mock scope；不构成真实 Provider、V5 或 Production Ready。 |
+| production，显式 openai_compatible 且 URL / API key / model 完整、URL 为 HTTPS | 允许通过配置校验。 | 不证明已实际调用真实 Provider。 |
+| production，openai_compatible 配置缺失、URL 非 HTTPS 或 URL 不安全 | 拒绝启动。 | 保持现有安全校验。 |
+| openai_compatible 调用超时、网络 / HTTP 错误或输出无效 | 不自动切换 deterministic。 | 保持 D-009 fail-closed、最小审计与无本轮业务写入。 |
+| 仅设置假想 `HIRELINK_LLM_PROVIDER` 或仅靠 HIRELINK legacy alias | 不视为 Provider 显式配置。 | production 仍必须由 `JOBFIT_LLM_PROVIDER` 满足 D-011。 |
 
 ## JF-DOC-02：P0 内容归纳、链接迁移与历史归档
 

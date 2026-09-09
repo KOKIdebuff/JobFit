@@ -27,6 +27,9 @@
 | D-008 | approved | P0 内容归纳、契约基线迁移与历史归档 | [implementation-plan.md](./implementation-plan.md)、[progress.md](./progress.md) |
 | D-009 | approved | 真实 LLM Provider 的受控追问边界 | [architecture.md](./architecture.md)、[implementation-plan.md](./implementation-plan.md)、[progress.md](./progress.md) |
 | D-010 | approved | P1 分阶段智能化升级协议与状态基线 | [p1-implementation-protocol.md](./p1-implementation-protocol.md)、[roadmap.md](./roadmap.md)、[progress.md](./progress.md) |
+| D-011 | Accepted | 生产 Provider 显式选择与 deterministic 演示例外 | 本决策登记；后续实现前同步相关配置契约 |
+| D-012 | Accepted | `REPORT_GENERATION` 作为当前未实现的预留状态 | 本决策登记；后续报告工作流设计前必须重新决策 |
+| D-013 | Accepted | `FAILED` 作为当前未实现的预留状态 | 本决策登记；未来失败分类与恢复设计前必须重新决策 |
 
 ## D-001：以岗位胜任力评估为唯一产品主线
 
@@ -74,7 +77,8 @@
 - **来源**：项目负责人 2026-09-06 批准。
 - **结论**：PRD 拥有产品目标，决策登记拥有批准取舍，Roadmap 拥有阶段顺序，Implementation Plan 拥有可执行任务，Progress 拥有运行状态，Implementation Status 拥有代码事实，Contracts 拥有 API/并发/兼容语义。`JF-P1-*` 在获得具体批准并写入 Plan 前仅为 Roadmap 方向。
 - **理由**：避免同一事实在多个文档中被独立改写，进而产生状态漂移或把规划写成实现。
-- **影响**：`JF-DOC-01` 是首个文档治理任务；三个 P0 辅助文档正式废弃但保留文件和追溯入口；`p0-contracts.md` 因既有链接兼容而继续作为活动契约文件。
+- **影响（现行部分）**：`JF-DOC-01` 是首个文档治理任务；三个 P0 辅助文档正式废弃但保留文件和追溯入口。
+- **已被取代的历史表述**：本决策原先将 `p0-contracts.md` 作为因既有链接兼容而继续使用的活动契约文件；该部分已由 `D-008` 于 2026-09-06 取代。当前 P0 接口与契约基线唯一由 `implementation-plan.md` 承载，归档 `docs/archive/legacy-p0/p0-contracts.md` 仅供历史追溯。
 - **修订记录**：`D-008` 于 2026-09-06 取代本决策中“独立 Contracts 文件拥有当前 API 契约”的部分；`D-006` 的其余职责边界和历史保持不变。
 
 ## D-007：采用 FastAPI 模块化单体与 SQLite 起步
@@ -114,3 +118,48 @@
 - **理由**：Provider 实现、local/mock 验证、Roadmap、Plan 和面向读者文档若继续采用不同 P1 身份或验证结论，会把已实现的受控路径、真实外部验证和未来规划混为一谈。
 - **边界**：P1 只在既有 P0 Runtime 上增量增强。LLM 提供语义理解与语言表达，固定 Deterministic Runtime 保持状态机、会话、Schema、版本、幂等、Evidence、评分、失败处理和报告公式的控制权。P0 Freeze、Decision Protocol 与 Out of Scope 以 P1 Protocol 为准。
 - **影响**：Roadmap 同步阶段顺序，Implementation Plan 同步任务准入，Progress 同步状态索引，Implementation Status 同步代码事实，Architecture 和 README 同步当前边界。保留 D-009 与 P1-01 不可变事件；不修改 Python、前端、Runtime、数据库、迁移、API 或 Provider 实现。
+
+## D-011：生产 Provider 显式选择与 deterministic 演示例外
+
+- **日期**：2026-09-08。
+- **状态**：Accepted。
+- **来源**：项目负责人于本轮 Provider Safety 决策闭环中明确选择候选方案 B。
+- **Context**：当前 `Settings` 默认 `llm_provider="deterministic"` 且 `allow_demo_provider=True`。现有生产校验只在 deterministic 且 demo 许可关闭时拒绝启动，因此生产环境在未显式配置 Provider 时仍可能以 deterministic 启动。`D-009` 已冻结 OpenAI-compatible 的 fail-closed 语义和“deterministic 不得静默回退”的边界，但未唯一确定生产环境的显式配置准入规则。
+- **Decision**：development / test 未配置 Provider 时可以默认使用 deterministic。production 必须显式配置 `JOBFIT_LLM_PROVIDER`，未配置即启动失败；若生产显式选择 deterministic，还必须同时显式设置 `JOBFIT_ALLOW_DEMO_PROVIDER=true`。OpenAI-compatible 的配置错误、超时、调用失败或无效输出继续 fail-closed，禁止自动降级为 deterministic。任何 deterministic 运行只能标记为 demo/mock scope，不构成真实外部 Provider 集成或 Production Ready 证据。
+- **Alternatives Considered**：A. 生产环境完全禁止 deterministic；安全边界最强，但无法支持明确隔离的生产演示。B. 采用本决策的显式演示例外；保留开发、测试和受控演示可用性，同时拒绝无意的生产默认值。C. 保留当前默认行为，仅禁止 Provider 运行失败后的 fallback；迁移成本最低，但不能保证生产 Provider 是有意选择的。
+- **Consequences**：部署配置将成为生产启动的必需输入；显式演示场景必须同时表达 Provider 与 demo 许可。Provider 失败后的事务与审计语义仍以 D-009 为准，不新增降级路径。
+- **Compatibility / Migration Impact**：development / test 的默认 deterministic 行为保持兼容。现有生产部署必须显式设置 `JOBFIT_LLM_PROVIDER`；若继续使用 deterministic，必须补充显式 `JOBFIT_ALLOW_DEMO_PROVIDER=true`，否则未来实现应拒绝启动。无需数据库、API 或数据迁移。
+- **Implementation Status**：Not Implemented。当前配置尚不能可靠地区分“未配置 Provider”的生产默认值与“显式配置 deterministic”。
+- **Verification Status**：Not Verified。尚未验证新的生产启动准入，也未取得真实外部 Provider 或生产运行证据。
+- **后续实现任务或阻塞关系**：进入任何 Provider Safety 配置实现前，必须将本决策同步为配置契约、补充相应配置/Runtime 测试，并取得与主张范围匹配的验证证据；本决策本身不授权代码实现。
+- **Supersedes / Superseded By**：不取代 D-009；本决策补充其生产配置准入边界。当前未被后续决策取代。
+
+## D-012：`REPORT_GENERATION` 作为当前未实现的预留状态
+
+- **日期**：2026-09-08。
+- **状态**：Accepted。
+- **来源**：项目负责人于本轮 Provider Safety 决策闭环中明确选择候选方案 B。
+- **Context**：`InterviewStatus` 声明了 `REPORT_GENERATION`，但当前同步 `generate_report()` 流程只接受 `COMPLETED` 会话并直接创建或返回报告；未观察到该状态的写入、后台任务、异步生成、恢复队列或报告生成中 API 语义。
+- **Decision**：`REPORT_GENERATION` 明确为当前 Runtime 未实现的预留状态。当前报告生成继续以 `COMPLETED` 为唯一可生成报告的会话终态；在完成独立的报告工作流设计、状态转换、失败/重试/恢复语义和验证前，不得将 `REPORT_GENERATION` 表述为当前实际进入的状态。
+- **Alternatives Considered**：A. 立即使当前 Runtime 进入 `REPORT_GENERATION`；可为将来的异步工作流铺路，但需要先定义持久化中间态、恢复、幂等和 API 可见语义。B. 采用本决策的预留状态；如实保持当前同步行为并保留未来扩展点。C. 移除该枚举值；可缩小当前类型面，但会产生不必要的兼容性收缩，并在未来重新引入时增加治理成本。
+- **Consequences**：当前会话状态机不新增转换，报告生成失败仍沿用现有异常处理边界；`REPORT_GENERATION` 不得用于证明报告正在异步生成、可恢复或已实现对应 Runtime 能力。
+- **Compatibility / Migration Impact**：当前 API、数据库、会话记录和报告生成行为保持不变，无需数据或数据库迁移。未来若启用该状态，必须先完成独立决策并明确客户端兼容、版本、并发和恢复策略。
+- **Implementation Status**：Not Implemented。当前未新增使 Runtime 显式识别或保护预留状态的代码；已观察到的“不进入该状态”仅是现状事实，不等同于本决策已被代码实现。
+- **Verification Status**：Not Verified。未执行新的状态机或报告流程验证。
+- **后续实现任务或阻塞关系**：任何将报告生成改为异步、长耗时或可恢复工作流的实现，都被本决策阻塞，直至相应状态与兼容性决策被批准并同步到接口契约、实施计划和测试。
+- **Supersedes / Superseded By**：不取代既有决策；当前未被后续决策取代。
+
+## D-013：`FAILED` 作为当前未实现的预留状态
+
+- **日期**：2026-09-08。
+- **状态**：Accepted。
+- **来源**：项目负责人于本轮 Provider Safety 决策闭环中明确选择候选方案 B。
+- **Context**：`InterviewStatus` 声明了 `FAILED`，但当前 Runtime 未将会话持久化为该状态。OpenAI-compatible Provider 的超时、网络/HTTP 错误或无效输出会回滚本轮 Candidate Answer、Evidence、Answer Assessment、Memory、RetrievalTrace、Report 与 Session Version 变更，仅追加最小 `LLMInvocation.status="failed"` 审计记录，并返回既有 `AI_*` 异常；此前已持久化的会话状态通常保持为 `WAITING_FOR_ANSWER`。`D-009` 已冻结 fail-closed 与非敏感审计边界，但未定义此类调用失败是否应终止整个会话。
+- **Decision**：`FAILED` 明确为当前 Runtime 未实现的预留状态。当前 Provider 故障继续 fail-closed：不保存本轮业务写入、不自动降级到 deterministic、保留最小调用失败审计并返回既有异常；会话保持此前可重试状态。除非未来完成独立的失败分类、终态条件、恢复/重试、版本、报告限制和 API 语义设计，否则不得将 `FAILED` 表述为当前实际持久化的会话终态。
+- **Alternatives Considered**：A. 将 `FAILED` 作为持久化 Runtime 终态；可表达不可恢复会话失败，但需要先定义故障分类、恢复和客户端语义。B. 采用本决策的预留状态；使短暂 Provider 故障继续由异常与调用审计表达，并与当前可重试行为一致。C. 移除该枚举值；可缩小当前类型面，但会不必要地收缩未来扩展空间，并增加未来重新引入时的兼容性成本。
+- **Consequences**：fail-closed 不等于会话终止。`LLMInvocation` 继续是内部 Provider 调用审计实体，不成为公开业务聚合；会话状态机不新增 Provider 故障到 `FAILED` 的转换。
+- **Compatibility / Migration Impact**：当前 API、数据库、会话记录、调用审计和用户重试行为保持不变，无需数据或数据库迁移。未来若启用 `FAILED`，必须先完成独立决策并明确错误分类、用户可见恢复、版本和客户端兼容策略。
+- **Implementation Status**：Not Implemented。当前未新增使 Runtime 显式识别或保护预留状态的代码；已观察到的“不进入该状态”仅是现状事实，不等同于本决策已被代码实现。
+- **Verification Status**：Not Verified。未执行新的失败状态机或恢复流程验证。
+- **后续实现任务或阻塞关系**：任何将 Provider、报告或其他 Runtime 异常持久化为会话 `FAILED` 终态的实现，都被本决策阻塞，直至相应失败分类、恢复语义、接口契约、实施计划和测试获得批准并同步。
+- **Supersedes / Superseded By**：不取代 D-009；本决策补充其调用失败的会话状态边界。当前未被后续决策取代。
